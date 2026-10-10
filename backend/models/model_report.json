@@ -1,43 +1,50 @@
 {
-  "model": "Random Forest (40 trees, depth \u2264 9)",
-  "data_source": "SYNTHETIC",
+  "model": "Random Forest (80 trees, depth \u2264 12, 12 features)",
+  "data_source": "SYNTHETIC_CHENNAI_CALIBRATED",
   "seed": 42,
-  "observations": 10920,
-  "training_rows": 8190,
-  "test_rows": 2730,
+  "observations": 234000,
+  "training_rows": 174720,
+  "test_rows": 59280,
   "training_dates": [
-    "2026-01-01",
-    "2026-01-21"
+    "2025-10-01",
+    "2026-01-20"
   ],
   "test_dates": [
-    "2026-01-22",
-    "2026-01-28"
+    "2026-01-21",
+    "2026-02-27"
   ],
-  "split": "First 21 dates train; next 7 dates test. No random row split.",
+  "split": "First 112 dates train; remaining 38 dates test. No random row split.",
+  "hours_per_day": 24,
+  "feature_count": 12,
+  "calibration_notes": "Synthetic generator encodes Chennai-like morning/evening peaks, weekend relief, NE monsoon rain bias, corridor load and festival shocks. Still not measured field traffic.",
   "random_forest": {
-    "mae_minutes": 0.6238844952236057,
-    "rmse_minutes": 0.9158517630035291,
-    "r2": 0.9946326392181011
+    "mae_minutes": 0.5264650453825195,
+    "rmse_minutes": 0.7648614587263887,
+    "r2": 0.9949681870343234
   },
   "fixed_speed": {
-    "mae_minutes": 11.049514551741849,
-    "rmse_minutes": 14.78124073463968,
-    "r2": -0.3980805613715144
+    "mae_minutes": 9.741089719470061,
+    "rmse_minutes": 12.589657740848216,
+    "r2": -0.3632853956256521
   },
   "traffic_rule": {
-    "mae_minutes": 1.3333328118249916,
-    "rmse_minutes": 1.9221180786887446,
-    "r2": 0.9763587440916098
+    "mae_minutes": 1.2406601536958775,
+    "rmse_minutes": 1.81840484335424,
+    "r2": 0.9715593122708133
   },
   "feature_importance": {
-    "distance_km": 0.0006230379915201162,
-    "speed_kmh": 0.0014791115894223531,
-    "hour_sin": 0.005846524762032413,
-    "hour_cos": 0.0010750342535546173,
-    "weekday": 0.002699051699804432,
-    "congestion": 0.8705713854856384,
-    "rain": 0.11649154394827319,
-    "road_type": 0.0012143102697545827
+    "distance_km": 0.0009492777036679313,
+    "speed_kmh": 0.00235859392871987,
+    "hour_sin": 0.0725794473285896,
+    "hour_cos": 0.05356375135396827,
+    "weekday": 0.011367453457187628,
+    "congestion": 0.4829156316879664,
+    "rain": 0.26422878500691876,
+    "road_type": 0.0021390141246785807,
+    "is_weekend": 0.012235404844468011,
+    "monsoon": 0.0027338925360634323,
+    "corridor_load": 0.005230522675529664,
+    "event_shock": 0.08969822535224174
   },
-  "limitations": "Generated observations share a synthetic mechanism; metrics do not establish real-world traffic accuracy. One final holdout evaluation; no parameter search on the test set."
+  "limitations": "Generated observations share a synthetic mechanism calibrated to plausible metro patterns; metrics do not establish real-world Chennai traffic accuracy. One final holdout evaluation; no parameter search on the test set."
 }

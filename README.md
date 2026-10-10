@@ -10,7 +10,7 @@ Install Python 3.12+, extract the ZIP, and open a terminal inside `RescueRoute_C
 python local_server.py
 ```
 
-On Windows, use `py local_server.py` if `python` is unavailable. Open http://localhost:8000. Local serving requires only the Python standard library. Click **Guided demo** to start a repeatable critical-trauma mission; try road closure, hospital unavailability, next GPS step and completion. Local state persists in `rescueroute-chennai.sqlite3`. Reset the shared demo from the AWS tab when you need a fresh run.
+On Windows, use `py local_server.py` if `python` is unavailable. Open http://localhost:8020 (or the port printed by the server). Local serving requires only the Python standard library. Click **Guided demo** to start a repeatable critical-trauma mission; try road closure, hospital unavailability, next GPS step and completion. Local state persists in `rescueroute-chennai.sqlite3`. Reset the shared demo from the AWS tab when you need a fresh run.
 
 ## Choose source, destination and five earliest hospitals
 
@@ -41,9 +41,9 @@ The street map shows all 868 records by default, groups nearby records into coun
 
 ## ML and algorithms
 
-A* plans weighted missions; Dijkstra, BFS and shortest-distance baselines use the same graph snapshot. Dynamic replanning reruns A*, rather than implementing D* Lite. The directed street preview uses Dijkstra over mapped road segments and is independent of ML mission simulation. Twenty exported inference fixtures verify the JSON forest matches scikit-learn.
+A* plans weighted missions; Dijkstra, BFS and shortest-distance baselines use the same graph snapshot. Dynamic replanning reruns A*, rather than implementing D* Lite. The directed street preview applies the same Random Forest family when ML mode is on, so street ETAs and mission costs share one traffic narrative. Exported inference fixtures verify the JSON forest matches scikit-learn.
 
-The CSV has 10,920 synthetic observations (65 roads × six hours × 28 dates). A chronological split uses 8,190 training and 2,730 holdout rows. Random Forest holdout MAE: **0.624 minutes**, versus 1.333 for the traffic-rule baseline and 11.050 for fixed speed. These are synthetic per-road errors, not real ambulance or full-mission errors. See `docs/DATA_CARD.md`.
+The CSV has **234,000** Chennai-calibrated synthetic observations (65 roads × 24 hours × 150 dates spanning monsoon → dry season) with monsoon intensity, weekend relief, corridor load and festival shocks. A chronological split uses 112 training dates and 38 holdout dates across **12 features**. Retrain locally or via the SageMaker-ready job script after deploy. See `docs/DATA_CARD.md`.
 
 Optional retraining:
 
@@ -54,19 +54,22 @@ python ml/train.py
 
 ## AWS deployment
 
-The SAM template implements Cognito, API Gateway, Lambda, DynamoDB, private S3/CloudFront, IAM and CloudWatch. Amazon Location is optional. There is no SageMaker training or SMS/email workflow.
+The SAM template implements Cognito, HTTP API, WebSocket API, Lambda (+ X-Ray), DynamoDB, SNS alerts, private S3/CloudFront, IAM, CloudWatch, Budgets and a SageMaker training role. Amazon Location (maps, Places, traffic routes) is optional.
 
 ```bash
 aws configure
 aws sts get-caller-identity
 sam build
 sam deploy --guided --stack-name rescueroute-chennai --region eu-north-1
+# Optional parameters: EnableLocation=true  AlertEmail=you@example.com
 python -m pip install -r requirements-aws.txt
 python scripts/publish_frontend.py --stack rescueroute-chennai --region eu-north-1
 python scripts/setup_user.py --stack rescueroute-chennai --region eu-north-1 --username dispatcher
+# Optional cloud retrain:
+python scripts/start_sagemaker_training.py --stack rescueroute-chennai --region eu-north-1
 ```
 
-Start with `EnableLocation=false`. To enable provider traffic and maps, redeploy with `EnableLocation=true` and republish; see `docs/AWS_DEPLOYMENT.md` for full instructions, prerequisites, charges and verification.
+Start with `EnableLocation=false`. To enable provider traffic, Places search and AWS maps, redeploy with `EnableLocation=true` and republish; see `docs/AWS_DEPLOYMENT.md`.
 
 **Deployment status:** no resources were deployed to your account during this revision. The connected browser returned “Site Unavailable” at your AWS console URL. Your earlier account-verification message may also need resolution if AWS still shows it. Local screenshots and SDK tests do not prove cloud deployment.
 

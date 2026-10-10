@@ -3,300 +3,504 @@
     "edge": {
       "km": 6.82046,
       "speed": 32,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 2,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.8117483520407701,
-    "expected_minutes": 57.498801360848326
+    "congestion": 0.37630833519751866,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 24.54931827471391
   },
   {
     "edge": {
       "km": 4.39678,
       "speed": 65,
-      "kind": 2
+      "kind": 2,
+      "corridor": "Ring road"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 0,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.5032672962015712,
-    "expected_minutes": 9.159633862220927
+    "congestion": 0.4657073942170649,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.55,
+      "event_shock": 0
+    },
+    "expected_minutes": 9.852969407789766
   },
   {
     "edge": {
       "km": 2.63727,
       "speed": 32,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.5986622255241756,
-    "expected_minutes": 13.34601401249503
+    "congestion": 0.49200071951546004,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 10.903609886542108
   },
   {
     "edge": {
       "km": 4.9251,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.7591780634755422,
-    "expected_minutes": 32.44540946282807
+    "congestion": 0.43651313823454657,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 20.271903300564233
   },
   {
     "edge": {
       "km": 2.80696,
       "speed": 32,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.5828760616406876,
-    "expected_minutes": 13.824390955516035
+    "congestion": 0.39363963053572343,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 10.32274817967039
   },
   {
     "edge": {
       "km": 4.94397,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 0,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.44272840666607893,
-    "expected_minutes": 21.114164001077953
+    "congestion": 0.37429414303854397,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 23.182105692586674
   },
   {
     "edge": {
       "km": 3.99641,
       "speed": 32,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 0,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.6918916318276213,
-    "expected_minutes": 22.319303577056242
+    "congestion": 0.49449036667966345,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 19.90935430368582
   },
   {
     "edge": {
       "km": 3.60461,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 1,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.798962527822651,
-    "expected_minutes": 28.766775551074726
+    "congestion": 0.3219417290550046,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 12.877063022180383
   },
   {
     "edge": {
       "km": 4.2742,
       "speed": 32,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.044181771592584906,
-    "expected_minutes": 9.926291197322334
+    "congestion": 0.39079256210431396,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 15.733718110467835
   },
   {
     "edge": {
       "km": 6.0495,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.43356347651265437,
-    "expected_minutes": 25.83554008712049
+    "congestion": 0.4871028946597186,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 26.618280323302788
   },
   {
     "edge": {
       "km": 5.97782,
       "speed": 65,
-      "kind": 2
+      "kind": 2,
+      "corridor": "Ring road"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.25418709363231967,
-    "expected_minutes": 8.656014500667222
+    "congestion": 0.46998198883054737,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.55,
+      "event_shock": 0
+    },
+    "expected_minutes": 11.279955298497319
   },
   {
     "edge": {
       "km": 4.21787,
       "speed": 55,
-      "kind": 1
+      "kind": 1,
+      "corridor": "Central corridor"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 0,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.10967457818322074,
-    "expected_minutes": 5.521890841315282
+    "congestion": 0.6423355692381054,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.85,
+      "event_shock": 0
+    },
+    "expected_minutes": 14.03574027804003
   },
   {
     "edge": {
       "km": 2.5641,
       "speed": 65,
-      "kind": 2
+      "kind": 2,
+      "corridor": "Ring road"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.1681455620109512,
-    "expected_minutes": 4.227782314132435
+    "congestion": 0.5715104058734504,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.55,
+      "event_shock": 0
+    },
+    "expected_minutes": 6.623310762925469
   },
   {
     "edge": {
       "km": 3.8364,
       "speed": 55,
-      "kind": 1
+      "kind": 1,
+      "corridor": "Central corridor"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.6673268620500953,
-    "expected_minutes": 11.910318834616119
+    "congestion": 0.5825373688803575,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.85,
+      "event_shock": 0
+    },
+    "expected_minutes": 10.265188448157314
   },
   {
     "edge": {
       "km": 2.60206,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 2,
       "use_ml": true
     },
-    "congestion": 0.31688729229745294,
-    "expected_minutes": 13.114282124997615
+    "congestion": 0.5962667479459272,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 17.463608259930993
   },
   {
     "edge": {
       "km": 1.93767,
       "speed": 55,
-      "kind": 1
+      "kind": 1,
+      "corridor": "Central corridor"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 2,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.6396175433671166,
-    "expected_minutes": 8.01746085029762
+    "congestion": 0.5411005235373132,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.85,
+      "event_shock": 0
+    },
+    "expected_minutes": 4.797450896620987
   },
   {
     "edge": {
       "km": 4.16404,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 1,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.29913876911009263,
-    "expected_minutes": 18.01410802559638
+    "congestion": 0.31544269570141686,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 14.690994690908173
   },
   {
     "edge": {
       "km": 2.41527,
       "speed": 55,
-      "kind": 1
+      "kind": 1,
+      "corridor": "Central corridor"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
-      "rain": 2,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
       "use_ml": true
     },
-    "congestion": 0.18429985742674634,
-    "expected_minutes": 5.493840326990258
+    "congestion": 0.521382901475999,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.85,
+      "event_shock": 0
+    },
+    "expected_minutes": 7.137672921394072
   },
   {
     "edge": {
       "km": 2.61721,
       "speed": 30,
-      "kind": 0
+      "kind": 0,
+      "corridor": "Local streets"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.8449243383248066,
-    "expected_minutes": 18.788677803215844
+    "congestion": 0.30922213404253945,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 9.173348510628166
   },
   {
     "edge": {
       "km": 4.43922,
       "speed": 55,
-      "kind": 1
+      "kind": 1,
+      "corridor": "Central corridor"
     },
     "settings": {
-      "hour": 6,
-      "weekday": 3,
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.5421750804376488,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.85,
+      "event_shock": 0
+    },
+    "expected_minutes": 13.403976096425753
+  },
+  {
+    "edge": {
+      "km": 2.0608,
+      "speed": 30,
+      "kind": 0,
+      "corridor": "Local streets"
+    },
+    "settings": {
+      "hour": 0,
+      "weekday": 2,
       "rain": 0,
       "use_ml": true
     },
-    "congestion": 0.8338691747109686,
-    "expected_minutes": 16.921652792200028
+    "congestion": 0.4987020495491768,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 9.181913859964062
+  },
+  {
+    "edge": {
+      "km": 2.56403,
+      "speed": 65,
+      "kind": 2,
+      "corridor": "Ring road"
+    },
+    "settings": {
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.4078935942695974,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.55,
+      "event_shock": 0
+    },
+    "expected_minutes": 5.52979601381076
+  },
+  {
+    "edge": {
+      "km": 3.67579,
+      "speed": 32,
+      "kind": 0,
+      "corridor": "Local streets"
+    },
+    "settings": {
+      "hour": 0,
+      "weekday": 2,
+      "rain": 2,
+      "use_ml": true
+    },
+    "congestion": 0.6146108344988837,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.35,
+      "event_shock": 0
+    },
+    "expected_minutes": 23.545867393485032
+  },
+  {
+    "edge": {
+      "km": 3.46082,
+      "speed": 65,
+      "kind": 2,
+      "corridor": "Ring road"
+    },
+    "settings": {
+      "hour": 0,
+      "weekday": 2,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.46759216834485123,
+    "extras": {
+      "monsoon": 0,
+      "corridor_load": 0.55,
+      "event_shock": 0
+    },
+    "expected_minutes": 7.8068955864917315
   }
 ]

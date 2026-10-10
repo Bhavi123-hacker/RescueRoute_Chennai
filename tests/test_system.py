@@ -58,7 +58,7 @@ class AlgorithmTests(unittest.TestCase):
 class PredictionTests(unittest.TestCase):
     def test_exported_inference_matches_sklearn_predictions(self):
         checks=json.loads((Path(__file__).parents[1]/'backend/models/inference_checks.json').read_text())
-        for c in checks:self.assertAlmostEqual(predict(c['edge'],c['settings'],c['congestion'])[0],c['expected_minutes'],places=10)
+        for c in checks:self.assertAlmostEqual(predict(c['edge'],c['settings'],c['congestion'],c.get('extras'))[0],c['expected_minutes'],places=10)
 
     def test_physical_floor_and_rain_congestion_response(self):
         e=EDGES[12];s=initial_state()['settings'];free=e['km']/e['speed']*60
@@ -66,11 +66,12 @@ class PredictionTests(unittest.TestCase):
         self.assertGreaterEqual(clear,free);self.assertGreater(rain,clear)
 
     def test_dataset_has_disjoint_temporal_split_and_expected_rows(self):
-        report=model_report();self.assertEqual(report['observations'],10920)
+        report=model_report();self.assertEqual(report['observations'],234000)
+        self.assertGreaterEqual(report.get('feature_count',0),12)
         self.assertLess(report['training_dates'][-1],report['test_dates'][0])
         self.assertEqual(report['training_rows']+report['test_rows'],report['observations'])
         with (Path(__file__).parents[1]/'ml/synthetic_traffic.csv').open() as f:
-            rows=list(csv.DictReader(f));self.assertEqual(len(rows),report['observations']);self.assertTrue(all(r['source']=='SYNTHETIC' for r in rows))
+            rows=list(csv.DictReader(f));self.assertEqual(len(rows),report['observations']);self.assertTrue(all('SYNTHETIC' in r['source'] for r in rows))
 
     def test_synthetic_holdout_model_beats_both_declared_baselines(self):
         r=model_report();self.assertLess(r['random_forest']['mae_minutes'],r['traffic_rule']['mae_minutes']);self.assertLess(r['random_forest']['mae_minutes'],r['fixed_speed']['mae_minutes'])
@@ -136,8 +137,10 @@ class MissionTests(unittest.TestCase):
         with self.assertRaises(ValueError):update_settings(self.s,{'rain':float('nan')})
 
 class PersistenceTests(unittest.TestCase):
-    def setUp(self):self.temp=tempfile.TemporaryDirectory();self.path=str(Path(self.temp.name)/'world.sqlite3');self.store=Store(self.path)
-    def tearDown(self):self.temp.cleanup()
+    def setUp(self):self.temp=tempfile.TemporaryDirectory(ignore_cleanup_errors=True);self.path=str(Path(self.temp.name)/'world.sqlite3');self.store=Store(self.path)
+    def tearDown(self):
+        try:self.temp.cleanup()
+        except OSError:pass
 
     def test_concurrent_stale_plan_allows_exactly_one_dispatch(self):
         revision=self.store.read()['revision']
@@ -176,7 +179,7 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(app.api('GET','/api/missing',store=self.store)[0],404)
 
     def test_report_contains_sources_and_model_without_commands(self):
-        _,report=app.api('POST','/api/export',{},self.store);self.assertTrue(report['report']['simulation']);self.assertEqual(report['report']['model']['data_source'],'SYNTHETIC')
+        _,report=app.api('POST','/api/export',{},self.store);self.assertTrue(report['report']['simulation']);self.assertIn('SYNTHETIC',report['report']['model']['data_source'])
 
 class DynamoAdapterTests(unittest.TestCase):
     class ConditionalError(Exception):pass
@@ -192,7 +195,7 @@ class DynamoAdapterTests(unittest.TestCase):
     def test_conditional_initialization_retry_and_readback(self):
         client=self.Fake(self);client.fail_once=True;store=Store(client=client,table='test')
         state,result=store.mutate(lambda s:dispatch(s,{'pickup':'N22','command_id':'cloud-1'}))
-        self.assertEqual(state['revision'],1);self.assertEqual(store.read()['missions'][result['mission_id']]['phase'],'TO_PICKUP')
+        self.assertEqual(state['revision'],1);self.assertEqual(store.read()['missions'][result['mission_id']]['phase'],'TO_HOSPITAL')
         store.mutate(lambda s:update_settings(s,{'traffic':'rush'}));self.assertEqual(store.read()['revision'],2)
 
 if __name__=='__main__':unittest.main()

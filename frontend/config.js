@@ -1,1 +1,1 @@
-window.APP_CONFIG = {apiUrl:"",region:"",clientId:"",mapKey:"",locationEnabled:false};
+window.APP_CONFIG = {apiUrl:"",region:"",clientId:"",mapKey:"",locationEnabled:false,websocketUrl:""};

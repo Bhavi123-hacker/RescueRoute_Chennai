@@ -20,7 +20,7 @@ Use an activated account and an AWS-configured local computer or CloudShell. Nev
 | IAM | Scoped table, report-prefix and server-side Location routing permissions |
 | Amazon Location, optional | Restricted browser basemap key; CalculateRouteMatrix and CalculateRoutes from Lambda |
 
-Training uses scikit-learn locally, not SageMaker. There is no SMS/email service integration.
+Training uses scikit-learn locally by default. The SAM stack also creates a SageMaker execution role and `scripts/start_sagemaker_training.py` for optional cloud retraining. SNS mission alerts are enabled when you pass `AlertEmail`; WebSocket fan-out and X-Ray tracing are always provisioned.
 
 ## Prerequisites and deployment
 

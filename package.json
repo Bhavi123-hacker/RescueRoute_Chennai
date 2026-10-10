@@ -1,6 +1,13 @@
 {
   "name": "rescueroute-chennai",
   "private": true,
-  "scripts": {"test:browser": "node tests/browser_smoke.cjs"},
-  "devDependencies": {"playwright": "1.62.1"}
+  "scripts": {
+    "test:browser": "node tests/browser_smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "dependencies": {
+    "docx": "^9.9.0"
+  }
 }

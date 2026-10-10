@@ -47,16 +47,35 @@ AMBULANCES=[
     {'id':'AMB-03','node':'N50','name':'Airport response unit','ready_min':.7},
     {'id':'AMB-04','node':'N05','name':'Coastal response unit','ready_min':.6},
 ]
+# Diversified operator demo profiles across the 16 seeded hospitals (still not live clinical data).
+DEMO_CAPABILITIES={
+ 'H01':(['general','cardiac'],14,4,3),
+ 'H02':(['general','trauma'],10,0,4),
+ 'H03':(['general','trauma','cardiac'],18,5,2),
+ 'H04':(['general','cardiac'],12,3,3),
+ 'H05':(['general','trauma','cardiac'],22,6,5),
+ 'H06':(['general','trauma'],16,3,4),
+ 'H07':(['general','trauma','cardiac'],20,5,3),
+ 'H08':(['general','cardiac'],11,2,3),
+ 'H09':(['general','trauma'],9,2,4),
+ 'H10':(['general','cardiac'],10,2,3),
+ 'H11':(['general','trauma'],13,2,5),
+ 'H12':(['general','trauma','cardiac'],15,3,4),
+ 'H13':(['general'],8,1,3),
+ 'H14':(['general','cardiac'],12,4,3),
+ 'H15':(['general','trauma'],9,1,3),
+ 'H16':(['general','trauma','cardiac'],11,2,4),
+}
 HOSPITALS=[]
 for h in DIRECTORY['hospitals']:
  node=min(NODES.values(),key=lambda n:haversine(n,h))
  enabled=h.get('demo_enabled',False)
  # Care profiles and capacity are explicitly scenario assumptions, not verified clinical facts.
- capabilities=['general','cardiac'] if h['id']=='H01' else ['general','trauma'] if h['id']=='H02' else ['general','trauma','cardiac'] if enabled else []
+ caps,beds,icu,wait=DEMO_CAPABILITIES.get(h['id'],([],0,0,0)) if enabled else ([],0,0,0)
  HOSPITALS.append({'id':h['id'],'node':node['id'],'name':h['name'],'short':h['short'],
                   'lat':h['lat'],'lon':h['lon'],'connector_km':round(haversine(node,h)*1.2,4),
-                  'capabilities':capabilities,'beds':12 if enabled else 0,'icu':0 if h['id']=='H02' or not enabled else 3,
-                  'accepting':enabled,'wait_min':2 if enabled else 0,'status_source':'DEMO_ASSUMPTION' if enabled else 'UNKNOWN'})
+                  'capabilities':caps,'beds':beds,'icu':icu,
+                  'accepting':enabled,'wait_min':wait,'status_source':'DEMO_ASSUMPTION' if enabled else 'UNKNOWN'})
 PROFILES={
     'normal':{'Local streets':.15,'Central corridor':.2,'Ring road':.1,'Express link':.1},
     'rush':{'Local streets':.62,'Central corridor':.93,'Ring road':.22,'Express link':.3},

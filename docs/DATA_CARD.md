@@ -2,9 +2,9 @@
 
 ## Provenance and intended use
 
-`ml/train.py` generates the supplied 10,920 observations with seed 42: 65 modeled Chennai links × six sampled hours × 28 dates. It includes no patient identities, real ambulance journeys or observed Chennai congestion. Geographic link lengths are approximate model inputs. Intended use: demonstrate supervised regression and model-assisted graph search.
+`ml/train.py` generates **234,000** Chennai-calibrated synthetic observations with seed 42: 65 modeled links × 24 hours × 150 dates (1 Oct 2025 → 27 Feb 2026). It includes no patient identities, real ambulance journeys or measured Chennai congestion. Geographic link lengths are approximate model inputs. Intended use: demonstrate supervised regression, model-assisted graph search and street-preview travel weights.
 
-Training dates: 1–21 January 2026, 8,190 rows. Holdout dates: 22–28 January, 2,730 rows. Roads recur across both periods. The evaluation measures future synthetic dates on known modeled roads, not unseen-road/city performance. No hyperparameter search used the holdout.
+Training dates: first 112 calendar days (174,720 rows). Holdout dates: remaining 38 days (59,280 rows). Roads recur across both periods. The evaluation measures future synthetic dates on known modeled roads, not unseen-road/city performance. No hyperparameter search used the holdout.
 
 ## Features and inference
 
@@ -17,20 +17,16 @@ Training dates: 1–21 January 2026, 8,190 rows. Holdout dates: 22–28 January,
 | congestion | Synthetic/operator congestion index 0–1 |
 | rain | Synthetic weather level 0, 1 or 2 |
 | road_type | Encoded model road kind |
+| is_weekend | Weekend relief flag |
+| monsoon | Graded NE monsoon intensity |
+| corridor_load | Corridor class load prior |
+| event_shock | Festival / extreme congestion shock |
 
-The target is a travel-time multiplier relative to free-flow minutes. Synthetic labels follow a nonlinear congestion/weather/time mechanism plus random variation. Target minutes are not an input feature. RandomForestRegressor uses 40 trees, max_depth=9, min_samples_leaf=5, seed 42. Exported JSON tree arrays support standard-library runtime inference: average leaf predictions, clamp multiplier to at least one, then multiply by free-flow minutes. Twenty fixtures compare exported predictions with sklearn.
+The target is a travel-time multiplier relative to free-flow minutes. Labels follow nonlinear congestion/weather/time/monsoon/festival mechanisms plus noise. RandomForestRegressor uses 80 trees, max_depth=12, min_samples_leaf=4, max_features=sqrt, seed 42. Exported JSON tree arrays support standard-library runtime inference. Street preview reuses the same RF family via `street_multiplier`.
 
 ## Final synthetic holdout results
 
-| Predictor | MAE minutes | RMSE minutes | R-squared |
-| --- | ---: | ---: | ---: |
-| Random Forest | 0.624 | 0.916 | 0.995 |
-| Traffic-rule baseline | 1.333 | 1.922 | 0.976 |
-| Fixed free-flow speed | 11.050 | 14.781 | -0.398 |
-
-Metrics are per-link errors, not full mission arrival errors. Congestion contributes about 87.1% and rain 11.6% of impurity importance. They describe the synthetic generator, not causal real-world evidence. High R-squared is expected when train/test share that generator. These results do not establish real Chennai travel accuracy.
-
-The hospital top-five list minimizes predicted travel minutes. Mission A* adds a rough-road penalty (0.8 critical / 0.25 urgent minutes per roughness unit); assignment also includes readiness, on-scene time, handover wait and approximate connectors. Disabling ML selects the traffic-rule baseline. A* correctness applies to supplied graph weights, not to their real-world prediction accuracy.
+See `backend/models/model_report.json` for the exact metrics from the last training run. The Random Forest must beat both the traffic-rule and fixed-speed baselines on holdout MAE. High R-squared is expected when train/test share the generator. These results do **not** establish real Chennai travel accuracy.
 
 ## Reproduction / extension
 
@@ -39,4 +35,8 @@ python -m pip install -r ml/requirements.txt
 python ml/train.py
 ```
 
-Training regenerates CSV, model JSON, report JSON and prediction fixtures. Replacing a CSV alone does not retrain this model. For real data, obtain authorized de-identified road/trip measurements, document provenance/units/missing values, use chronological train/validation/test splits, tune only on training/validation, compare simple baselines and calibration, and evaluate route/mission error including outages and drift. Amazon Location preview data is not used to train the supplied forest.
+After AWS deploy, optional cloud retrain:
+
+```bash
+python scripts/start_sagemaker_training.py --stack rescueroute-chennai --region eu-north-1
+```

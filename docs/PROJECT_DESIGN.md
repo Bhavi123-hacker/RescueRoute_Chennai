@@ -51,7 +51,7 @@ OSM positions/names have attribution and source record links. Sixteen operationa
 
 CloudFront serves private S3 frontend assets. Cognito operator ID tokens authorize API Gateway JWT calls. Lambda plans routes, performs exported ML inference, edits shared DynamoDB state, signs Location routing calls and writes private S3 mission exports. CloudWatch stores seven-day logs and latency/error metrics. Browser map keys are restricted to map actions and the CloudFront referer; no AWS access keys are put in the client.
 
-No SageMaker, SNS/SMS or real hospital integration is implemented. Future work includes validated road feeds, authenticated hospital capacity, physical ambulance telemetry, real-data model calibration, WebSockets, separate entity transactions and city-scale road benchmarking.
+SNS mission alerts, API Gateway WebSockets, X-Ray, Budgets and a SageMaker training role are implemented in the SAM stack. Amazon Location Places/routes are optional. Real hospital bed APIs and physical ambulance telemetry remain out of scope. Future work includes authenticated hospital capacity, real-data model calibration, separate entity transactions and city-scale road benchmarking.
 
 ## Directed street-map implementation
 

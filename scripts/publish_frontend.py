@@ -11,7 +11,8 @@ if __name__=='__main__':
     raw=session.client('cloudformation').describe_stacks(StackName=a.stack)['Stacks'][0]['Outputs']
     out={x['OutputKey']:x['OutputValue'] for x in raw};root=Path(__file__).resolve().parents[1]
     config={'apiUrl':out['ApiUrl'],'region':a.region,'clientId':out['ClientId'],
-            'locationEnabled':out.get('LocationEnabled')=='true','mapKey':''}
+            'locationEnabled':out.get('LocationEnabled')=='true','mapKey':'',
+            'websocketUrl':out.get('WebSocketUrl','')}
     if config['locationEnabled']:
         config['mapKey']=session.client('location').describe_key(KeyName=out['MapKeyName'])['Key']
     (root/'frontend'/'config.js').write_text('window.APP_CONFIG = '+json.dumps(config)+';\n')

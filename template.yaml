@@ -1,14 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: RescueRoute Chennai - A-star, Random Forest, live mission simulation and AWS
+Description: RescueRoute Chennai - A*, RF traffic, SNS alerts, WebSockets, SageMaker-ready, Location
 Parameters:
   EnableLocation:
     Type: String
     Default: 'false'
     AllowedValues: ['true', 'false']
-    Description: Enable chargeable Amazon Location maps and real-road reference routing
+    Description: Enable chargeable Amazon Location maps, places and real-road routing
+  AlertEmail:
+    Type: String
+    Default: ''
+    Description: Optional email subscribed to SNS mission alerts (leave blank to skip)
 Conditions:
   LocationEnabled: !Equals [!Ref EnableLocation, 'true']
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+Globals:
+  Function:
+    Tracing: Active
+    Timeout: 29
+    Runtime: python3.12
+    MemorySize: 512
 Resources:
   Operators:
     Type: AWS::Cognito::UserPool
@@ -47,13 +58,40 @@ Resources:
           KeyType: RANGE
       SSESpecification:
         SSEEnabled: true
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: false
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: RescueRoute Chennai mission alerts
+      TopicName: !Sub '${AWS::StackName}-mission-alerts'
+  AlertSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
   Api:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: '$default'
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 10
-        ThrottlingRateLimit: 5
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
       CorsConfiguration:
         AllowOrigins:
           - !Sub 'https://${Distribution.DomainName}'
@@ -68,30 +106,110 @@ Resources:
               issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${Operators}'
               audience:
                 - !Ref OperatorClient
+  RealtimeApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-realtime'
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: '$request.body.action'
+  RealtimeConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealtimeApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Backend.Arn}/invocations'
+  RealtimeDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealtimeApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Backend.Arn}/invocations'
+  RealtimeDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealtimeApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Backend.Arn}/invocations'
+  RealtimeConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealtimeApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Sub 'integrations/${RealtimeConnectIntegration}'
+  RealtimeDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealtimeApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Sub 'integrations/${RealtimeDisconnectIntegration}'
+  RealtimeDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealtimeApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Sub 'integrations/${RealtimeDefaultIntegration}'
+  RealtimeStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref RealtimeApi
+      StageName: prod
+      AutoDeploy: true
+  BackendInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Backend
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RealtimeApi}/*'
   Backend:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/
       Handler: app.handler
       Runtime: python3.12
-      MemorySize: 512
+      MemorySize: 1024
       Timeout: 29
+      Tracing: Active
       Environment:
         Variables:
           TABLE_NAME: !Ref DispatchTable
           REPORT_BUCKET: !Ref ReportBucket
+          MODEL_BUCKET: !Ref ReportBucket
           ENABLE_LOCATION: !Ref EnableLocation
+          ALERT_TOPIC_ARN: !Ref AlertTopic
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          WEBSOCKET_URL: !Sub 'wss://${RealtimeApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+          WEBSOCKET_CALLBACK_URL: !Sub 'https://${RealtimeApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
       Policies:
+        - AWSXRayDaemonWriteAccess
         - Statement:
             - Effect: Allow
               Action: [dynamodb:GetItem, dynamodb:PutItem]
               Resource: !GetAtt DispatchTable.Arn
             - Effect: Allow
+              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Scan]
+              Resource: !GetAtt ConnectionsTable.Arn
+            - Effect: Allow
               Action: [s3:PutObject, s3:GetObject]
-              Resource: !Sub '${ReportBucket.Arn}/reports/*'
+              Resource:
+                - !Sub '${ReportBucket.Arn}/reports/*'
+                - !Sub '${ReportBucket.Arn}/training/*'
+                - !Sub '${ReportBucket.Arn}/city/*'
+            - Effect: Allow
+              Action: [sns:Publish]
+              Resource: !Ref AlertTopic
+            - Effect: Allow
+              Action: [execute-api:ManageConnections]
+              Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RealtimeApi}/prod/POST/@connections/*'
             - Effect: Allow
               Action: [geo-routes:CalculateRoutes, geo-routes:CalculateRouteMatrix]
               Resource: !Sub 'arn:${AWS::Partition}:geo-routes:${AWS::Region}::provider/default'
+            - Effect: Allow
+              Action: [geo-places:SearchText, geo-places:GetPlace]
+              Resource: !Sub 'arn:${AWS::Partition}:geo-places:${AWS::Region}::provider/default'
       Events:
         State:
           Type: HttpApi
@@ -144,11 +262,40 @@ Resources:
         Reference:
           Type: HttpApi
           Properties: {ApiId: !Ref Api, Path: /api/reference-route, Method: POST}
+        Places:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/places, Method: POST}
   BackendLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/lambda/${Backend}'
-      RetentionInDays: 7
+      RetentionInDays: 14
+  SageMakerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RescueRouteTrainingData
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:ListBucket, s3:GetBucketLocation]
+                Resource:
+                  - !GetAtt ReportBucket.Arn
+                  - !Sub '${ReportBucket.Arn}/*'
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents, cloudwatch:PutMetricData]
+                Resource: '*'
+              - Effect: Allow
+                Action: [ecr:GetAuthorizationToken, ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage]
+                Resource: '*'
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -236,6 +383,18 @@ Resources:
       Threshold: 3
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub '${AWS::StackName}-monthly'
+        BudgetLimit:
+          Amount: 40
+          Unit: USD
+        BudgetType: COST
+        TimeUnit: MONTHLY
   MapKey:
     Type: AWS::Location::APIKey
     Condition: LocationEnabled
@@ -253,6 +412,8 @@ Resources:
 Outputs:
   ApiUrl:
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
+  WebSocketUrl:
+    Value: !Sub 'wss://${RealtimeApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
   WebsiteUrl:
     Value: !Sub 'https://${Distribution.DomainName}'
   FrontendBucket:
@@ -265,6 +426,10 @@ Outputs:
     Value: !Ref OperatorClient
   ReportBucket:
     Value: !Ref ReportBucket
+  AlertTopicArn:
+    Value: !Ref AlertTopic
+  SageMakerRoleArn:
+    Value: !GetAtt SageMakerRole.Arn
   LocationEnabled:
     Value: !Ref EnableLocation
   MapKeyName:

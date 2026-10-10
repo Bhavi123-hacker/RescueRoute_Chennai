@@ -125,6 +125,18 @@ def log(state,kind,text,mission=None,extra=None):
     item={'id':str(uuid.uuid4()),'at':time.time(),'kind':kind,'text':text,'mission_id':mission}
     if extra:item.update(extra)
     state['events'].insert(0,item);state['events']=state['events'][:120]
+    # Best-effort AWS fan-out; never fail the mission mutation on notify errors.
+    try:
+        if __package__:
+            from .alerts import notify
+            from .realtime import broadcast
+        else:
+            from alerts import notify
+            from realtime import broadcast
+        notify(item)
+        broadcast({'type':'event','event':item,'revision':state.get('revision')})
+    except Exception:
+        pass
 
 def remember(state,data,operation,result):
     key=data.get('command_id')
@@ -154,7 +166,9 @@ def apply_plan(state,mission,result,reason):
         return
     phase='TO_HOSPITAL' if mission['picked_up'] else ('ON_SCENE' if a['current_node']==mission['request']['pickup'] else 'TO_PICKUP')
     route=best['hospital_route'] if mission['picked_up'] else best['pickup_route']
+    # Keep full A* legs for the map (cyan), not only the shrinking remaining_route.
     mission.update({'phase':phase,'hospital_id':best['hospital_id'],'remaining_route':route,
+                    'pickup_route':best.get('pickup_route') or mission.get('pickup_route'),
                     'hospital_route':best['hospital_route'],'remaining_min':best['arrival_min'],
                     'score_min':best['score_min'],'response_min':best['response_min']})
     a['status']=phase
@@ -180,14 +194,19 @@ def dispatch(state,data):
     if data.get('expected_revision',state['revision'])!=state['revision']:raise Conflict('The planning snapshot changed. Calculate a fresh plan before dispatch.')
     result=plan(state,data)
     if not result['best']:raise Conflict('No available ambulance and compatible hospital route.')
-    best=result['best'];a=state['fleet'][best['ambulance_id']];mid=str(uuid.uuid4())
-    mission={'id':mid,'created':time.time(),'request':result['request'],'ambulance_id':a['id'],'hospital_id':None,
-             'phase':'TO_PICKUP','picked_up':False,'elapsed_min':a['ready_min'],'original_eta_min':best['arrival_min'],
-             'reroutes':0,'gps_updates':0,'distance_travelled_km':0}
-    state['missions'][mid]=mission;a['mission_id']=mid
-    best['arrival_min']-=a['ready_min'];best['response_min']-=a['ready_min'];best['score_min']-=a['ready_min']
-    apply_plan(state,mission,result,'Initial dispatch')
-    log(state,'DISPATCH',f"{a['id']} assigned to pickup {result['request']['pickup']}.",mid)
+    best=result['best'];a=state['fleet'][best['ambulance_id']];mid=str(uuid.uuid4());req=result['request']
+    # Demo trip starts at the patient's pickup, then drives to the hospital.
+    a['current_node']=req['pickup'];a['mission_id']=mid
+    mission={'id':mid,'created':time.time(),'request':req,'ambulance_id':a['id'],'hospital_id':None,
+             'phase':'TO_HOSPITAL','picked_up':True,'elapsed_min':a['ready_min']+req['on_scene_min'],
+             'original_eta_min':best['arrival_min'],'reroutes':0,'gps_updates':0,'distance_travelled_km':0,
+             'pickup_route':best.get('pickup_route')}
+    state['missions'][mid]=mission
+    transport=plan(state,req,a['id'],mid,True)
+    if not transport.get('best'):raise Conflict('No available ambulance and compatible hospital route.')
+    mission['original_eta_min']=transport['best']['arrival_min']
+    apply_plan(state,mission,transport,'Initial dispatch')
+    log(state,'DISPATCH',f"{a['id']} dispatched from pickup {req['pickup']} to {transport['best']['hospital_name']}.",mid)
     done={'mission_id':mid};remember(state,data,'dispatch',done)
     # Bound stored history to keep the DynamoDB demo document below its item limit.
     completed=sorted([m for m in state['missions'].values() if m['phase']=='COMPLETED'],key=lambda m:m['created'])

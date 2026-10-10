@@ -12,6 +12,8 @@ if __package__:
     from .store import Store,Conflict
     from .live_routes import live_plan
     from .streets import street_plan
+    from .places import search_places
+    from .realtime import register,unregister,broadcast
 else:
     from data import NODES,EDGES,PROFILES,DIRECTORY,CITY_BOUNDS
     from engine import dispatch,advance,complete,update_settings,update_road,update_hospital,gps,reset,plan,capacities
@@ -20,6 +22,8 @@ else:
     from store import Store,Conflict
     from live_routes import live_plan
     from streets import street_plan
+    from places import search_places
+    from realtime import register,unregister,broadcast
 
 _store=None
 def get_store():
@@ -36,6 +40,10 @@ def snapshot(state):
             'reservations':capacities(state),'active_plans':active_plans,'profiles':list(PROFILES),'model':model_report(),'city':{k:v for k,v in DIRECTORY.items() if k!='hospitals'},'city_bounds':CITY_BOUNDS,
             'deployment':{'mode':'AWS' if os.environ.get('TABLE_NAME') else 'LOCAL',
                           'location_enabled':os.environ.get('ENABLE_LOCATION')=='true',
+                          'alerts_enabled':bool(os.environ.get('ALERT_TOPIC_ARN')),
+                          'realtime_enabled':bool(os.environ.get('CONNECTIONS_TABLE')),
+                          'sagemaker_ready':bool(os.environ.get('MODEL_BUCKET')),
+                          'websocket_url':os.environ.get('WEBSOCKET_URL',''),
                           'tracking_source':'SIMULATED / OPERATOR TEST GPS','graph_source':'MODELED CHENNAI NEIGHBORHOOD GRAPH','hospital_source':'OPENSTREETMAP DIRECTORY / DEMO CAPACITY'}}
 
 def reference_route(state,data):
@@ -66,7 +74,7 @@ def reference_route(state,data):
 def export_report(state,data):
     report={'project':'RescueRoute Chennai','generated_at':time.time(),'simulation':True,'revision':state['revision'],
             'settings':state['settings'],'model':model_report(),'missions':list(state['missions'].values()),'events':state['events'],
-            'sources':{'graph':'MODELED','traffic':'SIMULATED','gps':'SIMULATED / OPERATOR_TEST','hospitals':'OSM_DIRECTORY / OPERATOR_DEMO_CAPACITY','city':'CHENNAI'}}
+            'sources':{'graph':'MODELED','traffic':'SIMULATED_CHENNAI_CALIBRATED','gps':'SIMULATED / OPERATOR_TEST','hospitals':'OSM_DIRECTORY / OPERATOR_DEMO_CAPACITY','city':'CHENNAI'}}
     bucket=os.environ.get('REPORT_BUCKET')
     if bucket:
         import boto3
@@ -97,11 +105,14 @@ def api(method,path,body=None,store=None):
         if method=='POST' and path=='/api/live-plan':return live_plan(store.read(),body)
         if method=='POST' and path=='/api/street-plan':return 200,street_plan(store.read(),body)
         if method=='POST' and path=='/api/reference-route':return reference_route(store.read(),body)
+        if method=='POST' and path=='/api/places':return search_places(body.get('query',''),body.get('max_results',8))
         if method=='POST' and path=='/api/export':return 200,export_report(store.read(),body)
         operations={'dispatch':dispatch,'advance':advance,'complete':complete,'settings':update_settings,'road':update_road,'hospital':update_hospital,'gps':gps,'reset':reset}
         name=path.removeprefix('/api/')
         if method=='POST' and path.startswith('/api/') and name in operations:
             state,result=store.mutate(lambda s:operations[name](s,body))
+            try:broadcast({'type':'state','revision':state['revision']})
+            except Exception:pass
             return 200,{'result':result,**snapshot(state)}
         return 404,{'error':'Endpoint not found.'}
     except (ValueError,TypeError,KeyError) as exc:return 400,{'error':str(exc)}
@@ -111,6 +122,19 @@ def api(method,path,body=None,store=None):
         return 503,{'error':'Service temporarily unavailable. Check logs and retry.'}
 
 def handler(event,context):
+    # WebSocket routes share this Lambda when route key is $connect/$disconnect/$default.
+    rc=event.get('requestContext') or {}
+    route=rc.get('routeKey')
+    if route in ('$connect','$disconnect','$default'):
+        cid=rc.get('connectionId')
+        if route=='$connect':
+            register(cid)
+            return {'statusCode':200,'body':'connected'}
+        if route=='$disconnect':
+            unregister(cid)
+            return {'statusCode':200,'body':'disconnected'}
+        return {'statusCode':200,'body':'ok'}
+
     started=time.perf_counter()
     try:
         body=event.get('body') or '{}'
@@ -118,7 +142,7 @@ def handler(event,context):
         if len(body.encode())>32768:raise ValueError('Request exceeds 32 KiB.')
         payload=json.loads(body)
     except (ValueError,UnicodeError):return {'statusCode':400,'body':json.dumps({'error':'Invalid JSON or oversized request.'})}
-    method=event.get('requestContext',{}).get('http',{}).get('method','GET')
+    method=rc.get('http',{}).get('method','GET')
     status,result=api(method,event.get('rawPath','/'),payload)
     # Embedded metrics are emitted in CloudWatch; never log credentials or request body.
     print(json.dumps({'_aws':{'Timestamp':int(time.time()*1000),'CloudWatchMetrics':[{'Namespace':'RescueRoute','Dimensions':[['Operation']],'Metrics':[{'Name':'RequestLatency','Unit':'Milliseconds'},{'Name':'RequestError','Unit':'Count'}]}]},
