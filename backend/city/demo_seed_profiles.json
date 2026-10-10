@@ -1,0 +1,66 @@
+{
+  "node/6933370913": {
+    "id": "H15",
+    "short": "Apollo First Med"
+  },
+  "way/211260239": {
+    "id": "H01",
+    "short": "Apollo Greams Road"
+  },
+  "node/6926411928": {
+    "id": "H12",
+    "short": "Government Kilpauk"
+  },
+  "node/6914768046": {
+    "id": "H09",
+    "short": "Billroth Shenoy Nagar"
+  },
+  "way/211274279": {
+    "id": "H16",
+    "short": "CSI Kalyani Hospital"
+  },
+  "way/218163938": {
+    "id": "H10",
+    "short": "Malar Hospital Adyar"
+  },
+  "node/3118864398": {
+    "id": "H04",
+    "short": "Kauvery Alwarpet"
+  },
+  "node/3702797921": {
+    "id": "H14",
+    "short": "Madras Medical Mission"
+  },
+  "node/364650995": {
+    "id": "H03",
+    "short": "MIOT International"
+  },
+  "way/27618339": {
+    "id": "H05",
+    "short": "Rajiv Gandhi Government General"
+  },
+  "relation/14377391": {
+    "id": "H11",
+    "short": "Government Royapettah"
+  },
+  "node/6936708989": {
+    "id": "H13",
+    "short": "Sooriya Hospital"
+  },
+  "node/313027868": {
+    "id": "H07",
+    "short": "Sri Ramachandra Medical Centre"
+  },
+  "way/28345285": {
+    "id": "H06",
+    "short": "Stanley Medical College"
+  },
+  "node/295552091": {
+    "id": "H02",
+    "short": "Sundaram Medical Foundation"
+  },
+  "node/5500158687": {
+    "id": "H08",
+    "short": "Vijaya Hospital"
+  }
+}

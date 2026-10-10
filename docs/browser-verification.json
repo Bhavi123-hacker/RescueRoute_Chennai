@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "initial": {
+    "id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+    "hospital": "H15",
+    "roads": [
+      "N00-N11",
+      "N11-N22"
+    ],
+    "phase": "TO_PICKUP"
+  },
+  "dynamic": {
+    "hospital": "H08",
+    "reroutes": 2,
+    "eta": 26.422964719073782
+  },
+  "icu_exclusion": true,
+  "second_operator_shared_state": true,
+  "hospital_draft_preserved": true,
+  "algorithm_cost_gap": 0,
+  "arrival_and_release": true,
+  "report_export": true,
+  "mobile_overflow": false,
+  "browser_errors": [],
+  "directory_records": 868,
+  "five_hospital_ranking": true,
+  "directory_travel_ranking": true,
+  "theme_switch": true,
+  "compare_return_toggle": true,
+  "map_zoom": true,
+  "all_868_map_records": true,
+  "three_independent_road_legs": true,
+  "directional_traffic": true,
+  "return_to_base": true,
+  "road_preview_playback": true,
+  "street_closure_avoided": true,
+  "coordinate_pickup": true,
+  "preferred_destination": true,
+  "mocked_browser_location": true
+}

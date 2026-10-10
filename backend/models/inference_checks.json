@@ -1,0 +1,302 @@
+[
+  {
+    "edge": {
+      "km": 6.82046,
+      "speed": 32,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 2,
+      "use_ml": true
+    },
+    "congestion": 0.8117483520407701,
+    "expected_minutes": 57.498801360848326
+  },
+  {
+    "edge": {
+      "km": 4.39678,
+      "speed": 65,
+      "kind": 2
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.5032672962015712,
+    "expected_minutes": 9.159633862220927
+  },
+  {
+    "edge": {
+      "km": 2.63727,
+      "speed": 32,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.5986622255241756,
+    "expected_minutes": 13.34601401249503
+  },
+  {
+    "edge": {
+      "km": 4.9251,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.7591780634755422,
+    "expected_minutes": 32.44540946282807
+  },
+  {
+    "edge": {
+      "km": 2.80696,
+      "speed": 32,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.5828760616406876,
+    "expected_minutes": 13.824390955516035
+  },
+  {
+    "edge": {
+      "km": 4.94397,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.44272840666607893,
+    "expected_minutes": 21.114164001077953
+  },
+  {
+    "edge": {
+      "km": 3.99641,
+      "speed": 32,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.6918916318276213,
+    "expected_minutes": 22.319303577056242
+  },
+  {
+    "edge": {
+      "km": 3.60461,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.798962527822651,
+    "expected_minutes": 28.766775551074726
+  },
+  {
+    "edge": {
+      "km": 4.2742,
+      "speed": 32,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.044181771592584906,
+    "expected_minutes": 9.926291197322334
+  },
+  {
+    "edge": {
+      "km": 6.0495,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.43356347651265437,
+    "expected_minutes": 25.83554008712049
+  },
+  {
+    "edge": {
+      "km": 5.97782,
+      "speed": 65,
+      "kind": 2
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.25418709363231967,
+    "expected_minutes": 8.656014500667222
+  },
+  {
+    "edge": {
+      "km": 4.21787,
+      "speed": 55,
+      "kind": 1
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.10967457818322074,
+    "expected_minutes": 5.521890841315282
+  },
+  {
+    "edge": {
+      "km": 2.5641,
+      "speed": 65,
+      "kind": 2
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.1681455620109512,
+    "expected_minutes": 4.227782314132435
+  },
+  {
+    "edge": {
+      "km": 3.8364,
+      "speed": 55,
+      "kind": 1
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.6673268620500953,
+    "expected_minutes": 11.910318834616119
+  },
+  {
+    "edge": {
+      "km": 2.60206,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 2,
+      "use_ml": true
+    },
+    "congestion": 0.31688729229745294,
+    "expected_minutes": 13.114282124997615
+  },
+  {
+    "edge": {
+      "km": 1.93767,
+      "speed": 55,
+      "kind": 1
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 2,
+      "use_ml": true
+    },
+    "congestion": 0.6396175433671166,
+    "expected_minutes": 8.01746085029762
+  },
+  {
+    "edge": {
+      "km": 4.16404,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 1,
+      "use_ml": true
+    },
+    "congestion": 0.29913876911009263,
+    "expected_minutes": 18.01410802559638
+  },
+  {
+    "edge": {
+      "km": 2.41527,
+      "speed": 55,
+      "kind": 1
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 2,
+      "use_ml": true
+    },
+    "congestion": 0.18429985742674634,
+    "expected_minutes": 5.493840326990258
+  },
+  {
+    "edge": {
+      "km": 2.61721,
+      "speed": 30,
+      "kind": 0
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.8449243383248066,
+    "expected_minutes": 18.788677803215844
+  },
+  {
+    "edge": {
+      "km": 4.43922,
+      "speed": 55,
+      "kind": 1
+    },
+    "settings": {
+      "hour": 6,
+      "weekday": 3,
+      "rain": 0,
+      "use_ml": true
+    },
+    "congestion": 0.8338691747109686,
+    "expected_minutes": 16.921652792200028
+  }
+]

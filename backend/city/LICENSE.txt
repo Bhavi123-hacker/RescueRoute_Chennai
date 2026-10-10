@@ -1,0 +1,15 @@
+Chennai hospital and street database attribution and license
+
+© OpenStreetMap contributors.
+The bundled source snapshot and derived Chennai hospital database are available under the Open Data Commons Open Database License (ODbL) 1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+https://www.openstreetmap.org/copyright
+
+This applies to the hospital map database and its derivatives, not automatically to the application source code.
+The source snapshot is included, with per-record OSM links and source IDs. The normalized dataset, CSV and metadata are openly available in this package.
+
+Mapping coverage is incomplete and may contain duplicate/mis-tagged/closed facilities. The bounding box includes surrounding municipalities. An OSM hospital tag does not certify clinical services or available beds.
+
+Street data: OpenStreetMap Overpass snapshot, 2026-10-08T12:57:06Z.
+The bundled roads_snapshot.json, street_graph.json and chennai_streets.json are map database derivatives under ODbL 1.0. Street graph coverage is selected motor-driving corridor classes, not every street. Raw records retain OSM way IDs, geometry and source tags; rebuild scripts are included.
+Leaflet 1.9.4 is separately licensed; see frontend/vendor/leaflet-LICENSE.txt.

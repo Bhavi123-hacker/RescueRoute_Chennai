@@ -1,0 +1,43 @@
+{
+  "model": "Random Forest (40 trees, depth \u2264 9)",
+  "data_source": "SYNTHETIC",
+  "seed": 42,
+  "observations": 10920,
+  "training_rows": 8190,
+  "test_rows": 2730,
+  "training_dates": [
+    "2026-01-01",
+    "2026-01-21"
+  ],
+  "test_dates": [
+    "2026-01-22",
+    "2026-01-28"
+  ],
+  "split": "First 21 dates train; next 7 dates test. No random row split.",
+  "random_forest": {
+    "mae_minutes": 0.6238844952236057,
+    "rmse_minutes": 0.9158517630035291,
+    "r2": 0.9946326392181011
+  },
+  "fixed_speed": {
+    "mae_minutes": 11.049514551741849,
+    "rmse_minutes": 14.78124073463968,
+    "r2": -0.3980805613715144
+  },
+  "traffic_rule": {
+    "mae_minutes": 1.3333328118249916,
+    "rmse_minutes": 1.9221180786887446,
+    "r2": 0.9763587440916098
+  },
+  "feature_importance": {
+    "distance_km": 0.0006230379915201162,
+    "speed_kmh": 0.0014791115894223531,
+    "hour_sin": 0.005846524762032413,
+    "hour_cos": 0.0010750342535546173,
+    "weekday": 0.002699051699804432,
+    "congestion": 0.8705713854856384,
+    "rain": 0.11649154394827319,
+    "road_type": 0.0012143102697545827
+  },
+  "limitations": "Generated observations share a synthetic mechanism; metrics do not establish real-world traffic accuracy. One final holdout evaluation; no parameter search on the test set."
+}

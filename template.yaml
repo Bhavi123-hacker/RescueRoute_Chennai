@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: RescueRoute Chennai - A-star, Random Forest, live mission simulation and AWS
+Parameters:
+  EnableLocation:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Enable chargeable Amazon Location maps and real-road reference routing
+Conditions:
+  LocationEnabled: !Equals [!Ref EnableLocation, 'true']
+Resources:
+  Operators:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      UsernameConfiguration:
+        CaseSensitive: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+  OperatorClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref Operators
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+  DispatchTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+      CorsConfiguration:
+        AllowOrigins:
+          - !Sub 'https://${Distribution.DomainName}'
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [Authorization, Content-Type]
+      Auth:
+        DefaultAuthorizer: OperatorAuth
+        Authorizers:
+          OperatorAuth:
+            IdentitySource: '$request.header.Authorization'
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${Operators}'
+              audience:
+                - !Ref OperatorClient
+  Backend:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: app.handler
+      Runtime: python3.12
+      MemorySize: 512
+      Timeout: 29
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref DispatchTable
+          REPORT_BUCKET: !Ref ReportBucket
+          ENABLE_LOCATION: !Ref EnableLocation
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [dynamodb:GetItem, dynamodb:PutItem]
+              Resource: !GetAtt DispatchTable.Arn
+            - Effect: Allow
+              Action: [s3:PutObject, s3:GetObject]
+              Resource: !Sub '${ReportBucket.Arn}/reports/*'
+            - Effect: Allow
+              Action: [geo-routes:CalculateRoutes, geo-routes:CalculateRouteMatrix]
+              Resource: !Sub 'arn:${AWS::Partition}:geo-routes:${AWS::Region}::provider/default'
+      Events:
+        State:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/state, Method: GET}
+        Dataset:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/dataset, Method: GET}
+        Plan:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/plan, Method: POST}
+        Analyze:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/analyze, Method: POST}
+        Benchmark:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/benchmark, Method: POST}
+        Dispatch:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/dispatch, Method: POST}
+        Advance:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/advance, Method: POST}
+        Complete:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/complete, Method: POST}
+        Settings:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/settings, Method: POST}
+        Road:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/road, Method: POST}
+        Hospital:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/hospital, Method: POST}
+        Gps:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/gps, Method: POST}
+        Reset:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/reset, Method: POST}
+        Export:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/export, Method: POST}
+        LivePlan:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/live-plan, Method: POST}
+        StreetPlan:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/street-plan, Method: POST}
+        Reference:
+          Type: HttpApi
+          Properties: {ApiId: !Ref Api, Path: /api/reference-route, Method: POST}
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${Backend}'
+      RetentionInDays: 7
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+  OriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-frontend'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: frontend
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref OriginAccess
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+          MinTTL: 0
+          DefaultTTL: 300
+          MaxTTL: 3600
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+  FrontendPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  DispatchErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Repeated dispatch errors in RescueRoute; inspect logs and constraints
+      Namespace: RescueRoute
+      MetricName: RequestError
+      Dimensions:
+        - Name: Operation
+          Value: /api/dispatch
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+  MapKey:
+    Type: AWS::Location::APIKey
+    Condition: LocationEnabled
+    Properties:
+      KeyName: !Sub '${AWS::StackName}-map-browser'
+      Description: Browser map-only key restricted to this CloudFront website
+      NoExpiry: true
+      ForceDelete: true
+      Restrictions:
+        AllowActions: ['geo-maps:*']
+        AllowResources:
+          - !Sub 'arn:${AWS::Partition}:geo-maps:${AWS::Region}::provider/default'
+        AllowReferers:
+          - !Sub 'https://${Distribution.DomainName}/*'
+Outputs:
+  ApiUrl:
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
+  WebsiteUrl:
+    Value: !Sub 'https://${Distribution.DomainName}'
+  FrontendBucket:
+    Value: !Ref FrontendBucket
+  DistributionId:
+    Value: !Ref Distribution
+  UserPoolId:
+    Value: !Ref Operators
+  ClientId:
+    Value: !Ref OperatorClient
+  ReportBucket:
+    Value: !Ref ReportBucket
+  LocationEnabled:
+    Value: !Ref EnableLocation
+  MapKeyName:
+    Condition: LocationEnabled
+    Value: !Ref MapKey

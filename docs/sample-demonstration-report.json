@@ -1,0 +1,307 @@
+{
+  "project": "RescueRoute Chennai",
+  "generated_at": 1791563698.745464,
+  "simulation": true,
+  "revision": 11,
+  "settings": {
+    "traffic": "normal",
+    "hour": 12,
+    "weekday": 1,
+    "rain": 0,
+    "use_ml": true
+  },
+  "model": {
+    "model": "Random Forest (40 trees, depth ≤ 9)",
+    "data_source": "SYNTHETIC",
+    "seed": 42,
+    "observations": 10920,
+    "training_rows": 8190,
+    "test_rows": 2730,
+    "training_dates": [
+      "2026-01-01",
+      "2026-01-21"
+    ],
+    "test_dates": [
+      "2026-01-22",
+      "2026-01-28"
+    ],
+    "split": "First 21 dates train; next 7 dates test. No random row split.",
+    "random_forest": {
+      "mae_minutes": 0.6238844952236057,
+      "rmse_minutes": 0.9158517630035291,
+      "r2": 0.9946326392181011
+    },
+    "fixed_speed": {
+      "mae_minutes": 11.049514551741849,
+      "rmse_minutes": 14.78124073463968,
+      "r2": -0.3980805613715144
+    },
+    "traffic_rule": {
+      "mae_minutes": 1.3333328118249916,
+      "rmse_minutes": 1.9221180786887446,
+      "r2": 0.9763587440916098
+    },
+    "feature_importance": {
+      "distance_km": 0.0006230379915201162,
+      "speed_kmh": 0.0014791115894223531,
+      "hour_sin": 0.005846524762032413,
+      "hour_cos": 0.0010750342535546173,
+      "weekday": 0.002699051699804432,
+      "congestion": 0.8705713854856384,
+      "rain": 0.11649154394827319,
+      "road_type": 0.0012143102697545827
+    },
+    "limitations": "Generated observations share a synthetic mechanism; metrics do not establish real-world traffic accuracy. One final holdout evaluation; no parameter search on the test set."
+  },
+  "missions": [
+    {
+      "id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "created": 1791563683.0994291,
+      "request": {
+        "pickup": "N22",
+        "pickup_location": null,
+        "preferred_hospital": null,
+        "allow_alternative": false,
+        "ranking_scope": "configured",
+        "category": "trauma",
+        "emergency": "critical",
+        "needs_icu": true,
+        "on_scene_min": 2
+      },
+      "ambulance_id": "AMB-01",
+      "hospital_id": "H08",
+      "phase": "COMPLETED",
+      "picked_up": true,
+      "elapsed_min": 26.922964719073782,
+      "original_eta_min": 24.317337940523522,
+      "reroutes": 2,
+      "gps_updates": 5,
+      "distance_travelled_km": 15.461839999999999,
+      "remaining_route": {
+        "nodes": [
+          "N31"
+        ],
+        "roads": [],
+        "minutes": 0,
+        "km": 0,
+        "cost": 0,
+        "penalty": 0,
+        "expanded": 1,
+        "runtime_ms": 0.001421999968442833,
+        "algorithm": "astar"
+      },
+      "hospital_route": {
+        "nodes": [
+          "N31"
+        ],
+        "roads": [],
+        "minutes": 0,
+        "km": 0,
+        "cost": 0,
+        "penalty": 0,
+        "expanded": 1,
+        "runtime_ms": 0.001421999968442833,
+        "algorithm": "astar"
+      },
+      "remaining_min": 0,
+      "score_min": 3.1921184,
+      "response_min": 0
+    }
+  ],
+  "events": [
+    {
+      "id": "d40a2f6d-cb09-49af-8a01-c2781a2f8dcc",
+      "at": 1791563697.5993912,
+      "kind": "COMPLETE",
+      "text": "AMB-01 released at the hospital location, not teleported to base.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "fe936248-f102-474e-8e47-a43a593b37ae",
+      "at": 1791563697.425962,
+      "kind": "ARRIVAL",
+      "text": "AMB-01 arrived at Vijaya Hospital; modeled bed allocated.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "95c2e9f2-c7e9-4ee5-be0d-cea53784c600",
+      "at": 1791563697.4259272,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 1.2 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 1.1921183999999998
+    },
+    {
+      "id": "7315088a-188f-4efb-a191-e4278c7f3405",
+      "at": 1791563697.420084,
+      "kind": "GPS",
+      "text": "AMB-01 simulated GPS at N31.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "b3e22eb4-0c87-49b5-9169-19df42359453",
+      "at": 1791563697.247985,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 3.7 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 3.689028333124676
+    },
+    {
+      "id": "68bd7b42-b4ee-46ce-b7a6-8e3f64e2070a",
+      "at": 1791563697.24178,
+      "kind": "GPS",
+      "text": "AMB-01 simulated GPS at N32.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "caa4ccb7-4780-4b59-8719-28591d0c130b",
+      "at": 1791563696.9865038,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 10.5 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 10.531222475672696
+    },
+    {
+      "id": "40bb438d-125d-4f75-936e-18c8c5709d27",
+      "at": 1791563696.9795008,
+      "kind": "PATIENT_PICKUP",
+      "text": "Modeled on-scene interval completed; transport begins.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "34dd4ad2-8fc0-4268-9386-a194a320c1d8",
+      "at": 1791563696.7944872,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 12.5 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 12.531222475672696
+    },
+    {
+      "id": "bbba8e72-f69a-4fdb-88b6-bae3d8650279",
+      "at": 1791563696.7866929,
+      "kind": "GPS",
+      "text": "AMB-01 simulated GPS at N22.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "c97a4cd7-b309-4fbc-9a5d-72c2ebf23c26",
+      "at": 1791563696.5942318,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 15.3 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 15.342370980856204
+    },
+    {
+      "id": "c74fe73c-c1e9-4ee4-93c9-53bff7ceee68",
+      "at": 1791563696.5844817,
+      "kind": "GPS",
+      "text": "AMB-01 simulated GPS at N11.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "7204074d-733c-4393-aa69-be1bcc317ad0",
+      "at": 1791563696.3943822,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 21.7 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 21.707508826329097
+    },
+    {
+      "id": "891867d3-984d-4e73-b941-cf53f30622fe",
+      "at": 1791563696.3843164,
+      "kind": "GPS",
+      "text": "AMB-01 simulated GPS at N10.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "9e5f0482-3763-4491-9ec6-63d06d244535",
+      "at": 1791563683.6662889,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Vijaya Hospital: 26.4 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H08",
+      "eta_min": 26.422964719073782
+    },
+    {
+      "id": "c48658a4-f9ae-495d-a600-de2656ee5759",
+      "at": 1791563683.6662776,
+      "kind": "REROUTE",
+      "text": "A* replanned from N00: Hospital availability changed.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "previous_eta_min": 26.235207918463285,
+      "new_eta_min": 26.422964719073782,
+      "previous_hospital_id": "H15",
+      "hospital_id": "H08"
+    },
+    {
+      "id": "6bed948b-55dd-44d6-b177-94203d2ac6e1",
+      "at": 1791563683.6582224,
+      "kind": "HOSPITAL_STATUS",
+      "text": "Apollo First Med availability updated.",
+      "mission_id": null
+    },
+    {
+      "id": "004ce7f4-8905-4445-99c6-6be3e678e9b3",
+      "at": 1791563683.4360425,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Apollo First Med: 26.2 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H15",
+      "eta_min": 26.235207918463285
+    },
+    {
+      "id": "f2e0b0ae-12ca-4406-94bb-1edf0d694cc2",
+      "at": 1791563683.4360263,
+      "kind": "REROUTE",
+      "text": "A* replanned from N00: Road condition changed.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "previous_eta_min": 23.817337940523522,
+      "new_eta_min": 26.235207918463285,
+      "previous_hospital_id": "H15",
+      "hospital_id": "H15"
+    },
+    {
+      "id": "ea0f2583-cc6d-4e0f-a8c6-7636701e6328",
+      "at": 1791563683.4230833,
+      "kind": "ROAD_CLOSURE",
+      "text": "N00-N11: closed.",
+      "mission_id": null
+    },
+    {
+      "id": "7aadbaf9-8d3b-4745-974b-14216191477e",
+      "at": 1791563683.0994658,
+      "kind": "DISPATCH",
+      "text": "AMB-01 assigned to pickup N22.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c"
+    },
+    {
+      "id": "2c223fe1-2475-4fe0-b081-5f8c2c9d6c00",
+      "at": 1791563683.099457,
+      "kind": "HOSPITAL_ETA",
+      "text": "ETA updated for Apollo First Med: 23.8 modeled min.",
+      "mission_id": "eae6b7f8-a0b1-4245-9e75-63503f0aa26c",
+      "hospital_id": "H15",
+      "eta_min": 23.817337940523522
+    },
+    {
+      "id": "6994bc83-49f9-456c-a8e0-bca5362f6ddb",
+      "at": 1791563682.6737103,
+      "kind": "TRAFFIC",
+      "text": "Traffic/time/weather weights updated. Active missions replanned.",
+      "mission_id": null
+    }
+  ],
+  "sources": {
+    "graph": "MODELED",
+    "traffic": "SIMULATED",
+    "gps": "SIMULATED / OPERATOR_TEST",
+    "hospitals": "OSM_DIRECTORY / OPERATOR_DEMO_CAPACITY",
+    "city": "CHENNAI"
+  }
+}
