@@ -89,7 +89,7 @@ Start with `EnableLocation=false`. To enable provider traffic, Places search and
 python -m unittest discover -s tests -v
 ```
 
-There are 58 tests: 54 core and four optional AWS SDK adapter tests. Install `requirements-aws.txt` to run the adapter tests; otherwise they skip. The graph suite includes 3,888 A*/Dijkstra endpoint comparisons and independent Floyd–Warshall checks.
+There are 62 tests: 58 core and four optional AWS SDK adapter tests. Install `requirements-aws.txt` to run the adapter tests; otherwise they skip. The graph suite includes 3,888 A*/Dijkstra endpoint comparisons and independent Floyd–Warshall checks.
 
 Browser checks require Node and Playwright:
 

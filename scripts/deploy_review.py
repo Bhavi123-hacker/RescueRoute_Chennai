@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+AWS_CHANGES_STARTED = False
 
 
 def check_credits(plan, reserve):
@@ -51,6 +52,8 @@ def fetch_json(url, token=None):
 
 
 def main(argv=None):
+    global AWS_CHANGES_STARTED
+    AWS_CHANGES_STARTED = False
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", default="rescueroute-key")
     parser.add_argument("--region", default="eu-north-1")
@@ -96,6 +99,7 @@ def main(argv=None):
     # Recheck after the build, before uploading artifacts or creating resources.
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
+    AWS_CHANGES_STARTED = True
     run([sam, "deploy", "--stack-name", args.stack, "--region", args.region,
          "--resolve-s3", "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
          "--no-fail-on-empty-changeset", "--parameter-overrides", "EnableLocation=false",
@@ -156,5 +160,8 @@ if __name__ == "__main__":
         main()
     except (RuntimeError, subprocess.TimeoutExpired, KeyboardInterrupt) as error:
         print(f"Stopped: {error}", file=sys.stderr)
-        print("A failed deployment may leave resources. Inspect CloudFormation before retrying or deleting anything.", file=sys.stderr)
+        if AWS_CHANGES_STARTED:
+            print("A failed deployment may leave resources. Inspect CloudFormation before retrying or deleting anything.", file=sys.stderr)
+        else:
+            print("Stopped during preflight. No AWS resource creation was attempted by this run.", file=sys.stderr)
         sys.exit(1)

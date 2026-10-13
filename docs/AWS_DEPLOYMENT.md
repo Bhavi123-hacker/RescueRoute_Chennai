@@ -40,6 +40,42 @@ py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy
 
 Enter your budget-alert email and dispatcher password locally when prompted. Do not share access keys, passwords, authentication URLs or tokens. Check `aws sts get-caller-identity --profile rescueroute-key` first. IAM `ReadOnlyAccess` can authenticate and inspect resources but cannot deploy this stack; the helper reports service errors and never grants itself permissions. If the Free Tier plan API is unsupported or denied, it stops without deploying. AWS account verification restrictions also cannot be bypassed.
 
+If preflight reports `AccessDeniedException` for `freetier:GetAccountPlanState`, an account administrator can add the following inline policy to the IAM deployment user. This only permits the balance/plan check; it does not grant deployment rights or permission to upgrade the account. Free Tier actions do not support resource-scoped ARNs, so this single read action requires `Resource: "*"`.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "freetier:GetAccountPlanState",
+    "Resource": "*"
+  }]
+}
+```
+
+Test the read operation in `us-east-1` before retrying deployment:
+
+```powershell
+aws freetier get-account-plan-state --profile rescueroute-key --region us-east-1
+```
+
+Policy reference: https://docs.aws.amazon.com/service-authorization/latest/reference/list_freetier.html
+
+### Deployment permissions for the review
+
+If the IAM user only has `ReadOnlyAccess`, generate the additional deployment policy locally:
+
+```powershell
+py -3.12 scripts/make_deployment_policy.py --profile rescueroute-key
+notepad review-deployment-policy.json
+```
+
+The generator only reads STS and creates a local JSON file, which is ignored by Git. In your existing root/admin console, open **IAM > Policies > Create policy > JSON**, paste that JSON and create the customer-managed policy **RescueRouteReviewDeployment**. Then open **IAM > Users > your deployment user > Permissions > Add permissions > Attach policies directly** and attach it. Retain `ReadOnlyAccess` for service inspection. This policy is over the inline-user-policy size limit; create it as a customer-managed policy, not an inline user policy.
+
+The policy includes the Free Tier plan read, CloudFormation, packaging/publishing, operator setup and the stack's services. Named resources are limited to the stack prefixes; Cognito/CloudFront modifications use the `Project=RescueRoute` tag, which the template explicitly applies. API Gateway writes cover API resources in the selected region because their IDs are allocated during creation. CloudFront origin-access-control writes are not name-scoped; new distribution tagging can apply the project tag. These broader grants should only be used by a trusted deployment operator and removed after review. The shared SAM artifact bucket also has upload/delete permissions; never delete unrelated artifacts or its shared stack.
+
+It explicitly denies account-plan upgrade, Organizations operations, Location API calls and SageMaker training/endpoint creation for this user. This is not a permissions boundary for Lambda execution roles or a spending cap. Service control policies, permission boundaries, expired credentials or account verification can still block a deployment. No policy is created or attached automatically by the helper.
+
 API throttling is 2 requests/second with a burst of 5. DynamoDB remains on demand for the review: the shared world is a large document, so a blind switch to a very small provisioned table can throttle normal mutations. On-demand requests consume credits or accrue charges. Reserve funds and current balance checks reduce risk but do not account for all future usage, attacks, taxes, expired credits or unrelated resources. A private/unshared URL is not a cost control. Keep the demo short, close unused tabs, avoid repeated benchmarks and remove resources after review.
 
 The authenticated dispatcher protects API operations, while frontend assets remain publicly hosted through CloudFront. Budget notifications, low traffic and these defaults do not enforce an absolute 1 USD or 100 USD ceiling.

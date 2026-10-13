@@ -34,6 +34,8 @@ Resources:
   Operators:
     Type: AWS::Cognito::UserPool
     Properties:
+      UserPoolTags:
+        Project: RescueRoute
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
       UsernameConfiguration:
@@ -329,6 +331,9 @@ Resources:
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
+      Tags:
+        - Key: Project
+          Value: RescueRoute
       DistributionConfig:
         Enabled: true
         DefaultRootObject: index.html

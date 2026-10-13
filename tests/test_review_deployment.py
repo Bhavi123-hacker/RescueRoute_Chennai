@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from backend import app
+from scripts import deploy_review
 from scripts.deploy_review import check_credits, main
 
 
@@ -57,6 +58,7 @@ class ReviewDeploymentTests(unittest.TestCase):
             main([])
         self.assertEqual([call.args[0][1:3] for call in run.call_args_list],
                          [["sts", "get-caller-identity"], ["freetier", "get-account-plan-state"]])
+        self.assertFalse(deploy_review.AWS_CHANGES_STARTED)
 
     def test_deploy_does_not_create_resources_when_credits_are_low(self):
         identity = {"Arn": "arn:aws:iam::123456789012:user/test"}
@@ -67,6 +69,7 @@ class ReviewDeploymentTests(unittest.TestCase):
                 self.assertRaises(RuntimeError):
             main(["--deploy"])
         self.assertEqual(run.call_count, 2)
+        self.assertFalse(deploy_review.AWS_CHANGES_STARTED)
 
     def test_balance_drop_during_build_prevents_resource_creation(self):
         identity = {"Arn": "arn:aws:iam::123456789012:user/test"}
@@ -80,6 +83,7 @@ class ReviewDeploymentTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
             main(["--deploy"])
         self.assertFalse(any(call.args[0][1] == "deploy" for call in run.call_args_list))
+        self.assertFalse(deploy_review.AWS_CHANGES_STARTED)
 
 
 if __name__ == "__main__":
