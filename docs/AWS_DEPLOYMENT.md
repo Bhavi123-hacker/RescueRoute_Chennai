@@ -24,7 +24,9 @@ Training uses scikit-learn locally by default. The SAM stack also creates a Sage
 
 ## Temporary review with a 1 USD monitoring budget
 
-The template creates an **account-wide monthly 1 USD budget**, with email alerts above 0.50, 0.80 and 1.00 USD. `BudgetAlertEmail` is required and separate from optional mission-alert recipients. Credits and refunds are excluded from this budget so credit-covered usage remains visible. Other AWS resources and earlier usage in the same month also count; alerts may therefore fire immediately. This is not an incremental project budget, an account spending cap, or a guarantee of free usage. Budgets notifications can arrive after charges have accrued. The budget resets each month and does not monitor lifetime spending.
+The helper first deploys `template-budget.yaml` as the separate **rescueroute-chennai-budget** CloudFormation stack in **us-east-1**. The Budgets CloudFormation resource is unavailable in the app's **eu-north-1** region, so it is absent from `template.yaml`. This budget still monitors account-wide costs across regions. Both templates are validated in their actual deployment regions before resources are created; a failed budget deployment stops the app deployment. A custom `--stack NAME` uses `NAME-budget` for this stack.
+
+The budget is **account-wide and monthly with a 1 USD limit**, with email alerts above 0.50, 0.80 and 1.00 USD. `BudgetAlertEmail` is required on the budget template and separate from optional mission-alert recipients. Credits and refunds are excluded from this budget so credit-covered usage remains visible. Other AWS resources and earlier usage in the same month also count; alerts may therefore fire immediately. This is not an incremental project budget, an account spending cap, or a guarantee of free usage. Budgets notifications can arrive after charges have accrued. The budget resets each month and does not monitor lifetime spending.
 
 Run the helper directly in your own PowerShell terminal if the coding agent's shell is stalled. It uses the named profile, verifies an active account plan and more than 10 USD remaining credits, checks again immediately before deployment, keeps Location/custom metrics disabled, builds/publishes the app, sets up the dispatcher and checks the public dashboard plus authenticated state API. It does not upgrade the account or run SageMaker training. Default execution is read-only:
 
@@ -72,7 +74,9 @@ notepad review-deployment-policy.json
 
 The generator only reads STS and creates a local JSON file, which is ignored by Git. In your existing root/admin console, open **IAM > Policies > Create policy > JSON**, paste that JSON and create the customer-managed policy **RescueRouteReviewDeployment**. Then open **IAM > Users > your deployment user > Permissions > Add permissions > Attach policies directly** and attach it. Retain `ReadOnlyAccess` for service inspection. This policy is over the inline-user-policy size limit; create it as a customer-managed policy, not an inline user policy.
 
-The policy includes the Free Tier plan read, CloudFormation, packaging/publishing, operator setup and the stack's services. Named resources are limited to the stack prefixes; Cognito/CloudFront modifications use the `Project=RescueRoute` tag, which the template explicitly applies. API Gateway writes cover API resources in the selected region because their IDs are allocated during creation. CloudFront origin-access-control writes are not name-scoped; new distribution tagging can apply the project tag. These broader grants should only be used by a trusted deployment operator and removed after review. The shared SAM artifact bucket also has upload/delete permissions; never delete unrelated artifacts or its shared stack.
+The policy includes the Free Tier plan read, CloudFormation, packaging/publishing, operator setup and the stack's services. CloudFormation grants include only the named application/budget stacks and the shared SAM packaging stack. If you previously generated the policy before the budget was split out, regenerate it and replace the JSON in **IAM > Policies > RescueRouteReviewDeployment > Edit > JSON**, then save the new default version. This adds the named budget stack permissions in `us-east-1`; reattaching the same policy is unnecessary.
+
+Named resources are limited to the stack prefixes; Cognito/CloudFront modifications use the `Project=RescueRoute` tag, which the template explicitly applies. API Gateway writes cover API resources in the selected region because their IDs are allocated during creation. CloudFront origin-access-control writes are not name-scoped; new distribution tagging can apply the project tag. These broader grants should only be used by a trusted deployment operator and removed after review. The shared SAM artifact bucket also has upload/delete permissions; never delete unrelated artifacts or its shared stack.
 
 It explicitly denies account-plan upgrade, Organizations operations, Location API calls and SageMaker training/endpoint creation for this user. This is not a permissions boundary for Lambda execution roles or a spending cap. Service control policies, permission boundaries, expired credentials or account verification can still block a deployment. No policy is created or attached automatically by the helper.
 
@@ -87,11 +91,12 @@ Install Python 3.12+, AWS CLI v2 and AWS SAM CLI. Configure a deployment identit
 ```bash
 aws configure
 aws sts get-caller-identity
+aws cloudformation deploy --template-file template-budget.yaml --stack-name rescueroute-chennai-budget --region us-east-1 --parameter-overrides BudgetName=rescueroute-chennai-monthly BudgetAlertEmail=you@example.com --no-fail-on-empty-changeset
 sam build
 sam deploy --guided --stack-name rescueroute-chennai --region eu-north-1
 ```
 
-Confirm IAM role creation when SAM requests it. Initially keep EnableLocation=false and EnableCustomMetrics=false. Provide your own BudgetAlertEmail for cost notifications. The same region must be used in every script. If the current Location features are unavailable in your chosen region, select a supported region and use it consistently.
+Replace the example email with your own for cost notifications. Confirm IAM role creation when SAM requests it. Initially keep EnableLocation=false and EnableCustomMetrics=false. Use the same application region in the app scripts; only the budget stack deploys in us-east-1. If the current Location features are unavailable in your chosen region, select a supported region and use it consistently.
 
 ```bash
 python -m pip install -r requirements-aws.txt
@@ -138,7 +143,14 @@ Services can incur charges; consult current regional pricing and set an AWS Budg
 sam delete --stack-name rescueroute-chennai --region eu-north-1
 ```
 
-This deletes project resources and state. Do not empty unrelated buckets or delete unrelated stacks.
+Confirm application cleanup before removing its monitoring budget. Then remove the separate budget stack:
+
+```powershell
+aws cloudformation delete-stack --stack-name rescueroute-chennai-budget --region us-east-1 --profile rescueroute-key
+aws cloudformation wait stack-delete-complete --stack-name rescueroute-chennai-budget --region us-east-1 --profile rescueroute-key
+```
+
+This deletes project resources and state. Do not empty unrelated buckets or delete unrelated stacks. The shared SAM packaging stack/bucket is separate; leave unrelated artifacts intact. Remove the deployment policy and deactivate its access key after cleanup.
 
 ## Troubleshooting
 

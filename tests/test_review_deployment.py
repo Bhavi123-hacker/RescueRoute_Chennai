@@ -76,7 +76,7 @@ class ReviewDeploymentTests(unittest.TestCase):
         initial = {"accountPlanType": "PAID", "accountPlanStatus": "ACTIVE",
                    "accountPlanRemainingCredits": {"amount": 90, "unit": "USD"}}
         low = {**initial, "accountPlanRemainingCredits": {"amount": 9, "unit": "USD"}}
-        outputs = [json.dumps(identity), json.dumps(initial), None, None, None, json.dumps(low)]
+        outputs = [json.dumps(identity), json.dumps(initial), None, None, None, None, json.dumps(low)]
         with patch("scripts.deploy_review.shutil.which", side_effect=lambda name: name), \
                 patch("scripts.deploy_review.run", side_effect=outputs) as run, \
                 patch("builtins.input", return_value="review@example.com"), \
@@ -84,6 +84,46 @@ class ReviewDeploymentTests(unittest.TestCase):
             main(["--deploy"])
         self.assertFalse(any(call.args[0][1] == "deploy" for call in run.call_args_list))
         self.assertFalse(deploy_review.AWS_CHANGES_STARTED)
+
+    def deployment_calls(self, budget_result=None, final_credits=90):
+        identity = {"Arn": "arn:aws:iam::123456789012:user/test"}
+        plan = {"accountPlanType": "FREE", "accountPlanStatus": "ACTIVE",
+                "accountPlanRemainingCredits": {"amount": 90, "unit": "USD"}}
+        final = {**plan, "accountPlanRemainingCredits": {"amount": final_credits, "unit": "USD"}}
+        outputs = [json.dumps(identity), json.dumps(plan), None, None, None, None,
+                   json.dumps(plan), budget_result, json.dumps(final), RuntimeError("offline app stop")]
+        with patch("scripts.deploy_review.shutil.which", side_effect=lambda name: name), \
+                patch("scripts.deploy_review.run", side_effect=outputs) as run, \
+                patch("builtins.input", return_value="review@example.com"), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            main(["--deploy"])
+        return [call.args[0] for call in run.call_args_list]
+
+    def test_budget_failure_stops_application_deployment(self):
+        commands = self.deployment_calls(budget_result=RuntimeError("budget denied"))
+        self.assertEqual(commands[-1][1:3], ["cloudformation", "deploy"])
+        self.assertFalse(any(command[:2] == ["sam", "deploy"] for command in commands))
+        self.assertTrue(deploy_review.AWS_CHANGES_STARTED)
+
+    def test_budget_precedes_app_with_explicit_regions(self):
+        commands = self.deployment_calls()
+        budget = next(c for c in commands if c[1:3] == ["cloudformation", "deploy"])
+        application = next(c for c in commands if c[:2] == ["sam", "deploy"])
+        self.assertLess(commands.index(budget), commands.index(application))
+        self.assertEqual(budget[budget.index("--region") + 1], "us-east-1")
+        self.assertEqual(budget[budget.index("--stack-name") + 1], "rescueroute-chennai-budget")
+        self.assertEqual(application[application.index("--region") + 1], "eu-north-1")
+        self.assertIn("EnableLocation=false", application)
+        self.assertFalse(any(c.startswith("BudgetAlertEmail=") for c in application))
+        validation = [c for c in commands if c[1] == "validate"]
+        self.assertEqual([(c[c.index("--template-file") + 1], c[c.index("--region") + 1]) for c in validation],
+                         [("template.yaml", "eu-north-1"), ("template-budget.yaml", "us-east-1")])
+
+    def test_credit_drop_after_budget_stops_app(self):
+        commands = self.deployment_calls(final_credits=9)
+        self.assertTrue(any(c[1:3] == ["cloudformation", "deploy"] for c in commands))
+        self.assertFalse(any(c[:2] == ["sam", "deploy"] for c in commands))
+        self.assertTrue(deploy_review.AWS_CHANGES_STARTED)
 
 
 if __name__ == "__main__":

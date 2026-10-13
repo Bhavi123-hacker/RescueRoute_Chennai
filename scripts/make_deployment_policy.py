@@ -28,10 +28,11 @@ def deployment_policy(account, region, stack):
         statements.append(statement)
 
     cf = f"arn:aws:cloudformation:{region}:{account}:stack/"
+    budget_stack = f"arn:aws:cloudformation:us-east-1:{account}:stack/{stack}-budget/*"
     allow(["cloudformation:CreateStack", "cloudformation:UpdateStack", "cloudformation:CreateChangeSet",
            "cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet", "cloudformation:TagResource",
-           "cloudformation:UntagResource"], [cf + stack + "/*", cf + "aws-sam-cli-managed-default/*"])
-    allow(["cloudformation:DeleteStack"], [cf + stack + "/*"])
+           "cloudformation:UntagResource"], [cf + stack + "/*", cf + "aws-sam-cli-managed-default/*", budget_stack])
+    allow(["cloudformation:DeleteStack"], [cf + stack + "/*", budget_stack])
     buckets = [f"arn:aws:s3:::{stack.lower()}-*", "arn:aws:s3:::aws-sam-cli-managed-default-*"]
     allow(["s3:CreateBucket", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:PutBucketPublicAccessBlock",
            "s3:PutBucketOwnershipControls", "s3:PutEncryptionConfiguration", "s3:PutBucketTagging"], buckets)

@@ -94,16 +94,26 @@ def main(argv=None):
     if "@" not in email or any(char.isspace() for char in email):
         raise RuntimeError("Enter a valid budget notification email. No deployment attempted.")
     run([sys.executable, "-m", "pip", "install", "-r", "requirements-aws.txt"], environment, timeout=600)
-    run([sam, "validate", "--lint", "--region", args.region], environment, timeout=120)
+    run([sam, "validate", "--lint", "--template-file", "template.yaml", "--region", args.region], environment, timeout=120)
+    run([sam, "validate", "--lint", "--template-file", "template-budget.yaml", "--region", "us-east-1"], environment, timeout=120)
     run([sam, "build"], environment, timeout=600)
     # Recheck after the build, before uploading artifacts or creating resources.
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
     AWS_CHANGES_STARTED = True
+    # Budgets is account-wide, but its CloudFormation resource is unavailable in
+    # eu-north-1. Establish alerts in us-east-1 before creating the application.
+    run([aws, "cloudformation", "deploy", "--template-file", "template-budget.yaml",
+         "--stack-name", args.stack + "-budget", "--profile", args.profile, "--region", "us-east-1",
+         "--no-fail-on-empty-changeset", "--parameter-overrides", f"BudgetName={args.stack}-monthly",
+         f"BudgetAlertEmail={email}", "--tags", "Project=RescueRoute"], environment, timeout=600)
+    print(f"Budget stack {args.stack}-budget deployed in us-east-1; app will deploy in {args.region}.")
+    plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
+    check_credits(plan, args.reserve_usd)
     run([sam, "deploy", "--stack-name", args.stack, "--region", args.region,
          "--resolve-s3", "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
          "--no-fail-on-empty-changeset", "--parameter-overrides", "EnableLocation=false",
-         "EnableCustomMetrics=false", "AlertEmail=''", f"BudgetAlertEmail={email}"], environment, timeout=3600)
+         "EnableCustomMetrics=false", "AlertEmail=''"], environment, timeout=3600)
     run([sys.executable, "scripts/publish_frontend.py", "--stack", args.stack,
          "--region", args.region], environment, timeout=600)
     # The publishing SDK must use exactly the same profile as the CLI.
@@ -161,7 +171,7 @@ if __name__ == "__main__":
     except (RuntimeError, subprocess.TimeoutExpired, KeyboardInterrupt) as error:
         print(f"Stopped: {error}", file=sys.stderr)
         if AWS_CHANGES_STARTED:
-            print("A failed deployment may leave resources. Inspect CloudFormation before retrying or deleting anything.", file=sys.stderr)
+            print("A failed deployment may leave resources. Inspect the budget stack in us-east-1 and app stack in the chosen region before retrying or deleting anything.", file=sys.stderr)
         else:
             print("Stopped during preflight. No AWS resource creation was attempted by this run.", file=sys.stderr)
         sys.exit(1)

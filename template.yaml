@@ -11,10 +11,6 @@ Parameters:
     Type: String
     Default: ''
     Description: Optional email subscribed to SNS mission alerts (leave blank to skip)
-  BudgetAlertEmail:
-    Type: String
-    NoEcho: true
-    Description: Email for the 1 USD account-wide monthly budget alerts
   EnableCustomMetrics:
     Type: String
     Default: 'false'
@@ -402,45 +398,6 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions:
         - !Ref AlertTopic
-  MonthlyBudget:
-    Type: AWS::Budgets::Budget
-    Properties:
-      Budget:
-        BudgetName: !Sub '${AWS::StackName}-monthly'
-        BudgetLimit:
-          Amount: 1
-          Unit: USD
-        BudgetType: COST
-        TimeUnit: MONTHLY
-        CostTypes:
-          IncludeCredit: false
-          IncludeRefund: false
-          IncludeTax: true
-      NotificationsWithSubscribers:
-        - Notification:
-            NotificationType: ACTUAL
-            ComparisonOperator: GREATER_THAN
-            ThresholdType: PERCENTAGE
-            Threshold: 50
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref BudgetAlertEmail
-        - Notification:
-            NotificationType: ACTUAL
-            ComparisonOperator: GREATER_THAN
-            ThresholdType: PERCENTAGE
-            Threshold: 80
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref BudgetAlertEmail
-        - Notification:
-            NotificationType: ACTUAL
-            ComparisonOperator: GREATER_THAN
-            ThresholdType: PERCENTAGE
-            Threshold: 100
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref BudgetAlertEmail
   MapKey:
     Type: AWS::Location::APIKey
     Condition: LocationEnabled

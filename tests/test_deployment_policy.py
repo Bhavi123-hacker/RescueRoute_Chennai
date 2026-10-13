@@ -29,6 +29,13 @@ class DeploymentPolicyTests(unittest.TestCase):
         self.assertTrue({"freetier:UpgradeAccountPlan", "organizations:*", "sagemaker:CreateTrainingJob",
                          "sagemaker:CreateEndpoint", "geo-routes:*", "geo-places:*", "geo-maps:*"} <= denied)
 
+    def test_budget_stack_can_be_created_and_removed_only_at_its_named_arn(self):
+        arn = "arn:aws:cloudformation:us-east-1:123456789012:stack/rescueroute-chennai-budget/*"
+        for action in ("cloudformation:CreateChangeSet", "cloudformation:ExecuteChangeSet", "cloudformation:DeleteStack"):
+            statement = next(s for s in self.policy["Statement"] if action in s["Action"])
+            self.assertIn(arn, statement["Resource"])
+            self.assertNotIn("*", statement["Resource"])
+
     def test_invalid_identifiers_are_rejected(self):
         for args in [("bad", "eu-north-1", "rescueroute-chennai"),
                      ("123456789012", "bad region", "rescueroute-chennai"),
