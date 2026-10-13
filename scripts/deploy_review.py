@@ -99,7 +99,7 @@ def main(argv=None):
     run([sam, "deploy", "--stack-name", args.stack, "--region", args.region,
          "--resolve-s3", "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
          "--no-fail-on-empty-changeset", "--parameter-overrides", "EnableLocation=false",
-         "EnableCustomMetrics=false", "AlertEmail=", f"BudgetAlertEmail={email}"], environment, timeout=3600)
+         "EnableCustomMetrics=false", "AlertEmail=''", f"BudgetAlertEmail={email}"], environment, timeout=3600)
     run([sys.executable, "scripts/publish_frontend.py", "--stack", args.stack,
          "--region", args.region], environment, timeout=600)
     # The publishing SDK must use exactly the same profile as the CLI.

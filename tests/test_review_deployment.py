@@ -68,6 +68,19 @@ class ReviewDeploymentTests(unittest.TestCase):
             main(["--deploy"])
         self.assertEqual(run.call_count, 2)
 
+    def test_balance_drop_during_build_prevents_resource_creation(self):
+        identity = {"Arn": "arn:aws:iam::123456789012:user/test"}
+        initial = {"accountPlanType": "PAID", "accountPlanStatus": "ACTIVE",
+                   "accountPlanRemainingCredits": {"amount": 90, "unit": "USD"}}
+        low = {**initial, "accountPlanRemainingCredits": {"amount": 9, "unit": "USD"}}
+        outputs = [json.dumps(identity), json.dumps(initial), None, None, None, json.dumps(low)]
+        with patch("scripts.deploy_review.shutil.which", side_effect=lambda name: name), \
+                patch("scripts.deploy_review.run", side_effect=outputs) as run, \
+                patch("builtins.input", return_value="review@example.com"), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+            main(["--deploy"])
+        self.assertFalse(any(call.args[0][1] == "deploy" for call in run.call_args_list))
+
 
 if __name__ == "__main__":
     unittest.main()
