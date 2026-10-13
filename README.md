@@ -54,7 +54,17 @@ python ml/train.py
 
 ## AWS deployment
 
-The SAM template implements Cognito, HTTP API, WebSocket API, Lambda (+ X-Ray), DynamoDB, SNS alerts, private S3/CloudFront, IAM, CloudWatch, Budgets and a SageMaker training role. Amazon Location (maps, Places, traffic routes) is optional.
+The SAM template implements Cognito, HTTP API, WebSocket API, Lambda, DynamoDB, SNS alerts, private S3/CloudFront, IAM, CloudWatch, Budgets and a SageMaker training role. Amazon Location (maps, Places, traffic routes) is optional. Review defaults disable active X-Ray tracing and custom CloudWatch metrics, lower API throttling and create a **1 USD account-wide monthly budget before credits**, with required `BudgetAlertEmail` notifications. The budget is an alert, not a hard spending cap. See `docs/AWS_DEPLOYMENT.md` for limits, permissions and cleanup.
+
+For a temporary review, run the helper in your authenticated local terminal (not a stalled agent shell):
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key
+# After check-only succeeds and deployment permissions are ready:
+py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy
+```
+
+It checks remaining credits, keeps a 10 USD reserve, builds/publishes the dashboard, prompts locally for the operator password, and verifies the website plus an authenticated API. It never upgrades the account or starts cloud training. Read-only IAM permissions cannot deploy; missing permissions or unverified credits stop the helper. A current balance check cannot guarantee future charges remain below the budget.
 
 ```bash
 aws configure

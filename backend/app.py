@@ -144,7 +144,10 @@ def handler(event,context):
     except (ValueError,UnicodeError):return {'statusCode':400,'body':json.dumps({'error':'Invalid JSON or oversized request.'})}
     method=rc.get('http',{}).get('method','GET')
     status,result=api(method,event.get('rawPath','/'),payload)
-    # Embedded metrics are emitted in CloudWatch; never log credentials or request body.
-    print(json.dumps({'_aws':{'Timestamp':int(time.time()*1000),'CloudWatchMetrics':[{'Namespace':'RescueRoute','Dimensions':[['Operation']],'Metrics':[{'Name':'RequestLatency','Unit':'Milliseconds'},{'Name':'RequestError','Unit':'Count'}]}]},
-                      'Operation':event.get('rawPath','/'),'RequestLatency':(time.perf_counter()-started)*1000,'RequestError':int(status>=400),'status':status}))
+    # Plain logs by default; EMF creates billable custom metrics for each operation.
+    # Never log credentials or request body.
+    record={'Operation':event.get('rawPath','/'),'RequestLatency':(time.perf_counter()-started)*1000,'RequestError':int(status>=400),'status':status}
+    if os.environ.get('ENABLE_CUSTOM_METRICS','false').lower()=='true':
+        record['_aws']={'Timestamp':int(time.time()*1000),'CloudWatchMetrics':[{'Namespace':'RescueRoute','Dimensions':[['Operation']],'Metrics':[{'Name':'RequestLatency','Unit':'Milliseconds'},{'Name':'RequestError','Unit':'Count'}]}]}
+    print(json.dumps(record))
     return {'statusCode':status,'headers':{'content-type':'application/json','cache-control':'no-store'},'body':json.dumps(result,allow_nan=False)}

@@ -16,11 +16,33 @@ Use an activated account and an AWS-configured local computer or CloudShell. Nev
 | DynamoDB | One shared demo world with consistent reads and conditional revision writes |
 | S3 + CloudFront | Private static frontend with Origin Access Control |
 | Private report S3 bucket | JSON mission exports, synthetic training/model artifacts and city catalog |
-| CloudWatch | Seven-day logs, latency/error metrics and dispatch-error alarm |
+| CloudWatch | 14-day logs; custom metrics and dispatch alarm are optional |
 | IAM | Scoped table, report-prefix and server-side Location routing permissions |
 | Amazon Location, optional | Restricted browser basemap key; CalculateRouteMatrix and CalculateRoutes from Lambda |
 
-Training uses scikit-learn locally by default. The SAM stack also creates a SageMaker execution role and `scripts/start_sagemaker_training.py` for optional cloud retraining. SNS mission alerts are enabled when you pass `AlertEmail`; WebSocket fan-out and X-Ray tracing are always provisioned.
+Training uses scikit-learn locally by default. The SAM stack also creates a SageMaker execution role and `scripts/start_sagemaker_training.py` for optional cloud retraining. SNS mission alerts are enabled when you pass `AlertEmail`; WebSocket fan-out is provisioned. Active X-Ray tracing is disabled, and custom CloudWatch metrics/alarms default to disabled for a temporary review.
+
+## Temporary review with a 1 USD monitoring budget
+
+The template creates an **account-wide monthly 1 USD budget**, with email alerts above 0.50, 0.80 and 1.00 USD. `BudgetAlertEmail` is required and separate from optional mission-alert recipients. Credits and refunds are excluded from this budget so credit-covered usage remains visible. Other AWS resources and earlier usage in the same month also count; alerts may therefore fire immediately. This is not an incremental project budget, an account spending cap, or a guarantee of free usage. Budgets notifications can arrive after charges have accrued. The budget resets each month and does not monitor lifetime spending.
+
+Run the helper directly in your own PowerShell terminal if the coding agent's shell is stalled. It uses the named profile, verifies an active account plan and more than 10 USD remaining credits, checks again immediately before deployment, keeps Location/custom metrics disabled, builds/publishes the app, sets up the dispatcher and checks the public dashboard plus authenticated state API. It does not upgrade the account or run SageMaker training. Default execution is read-only:
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key
+```
+
+After prerequisites and deployment permissions are ready, explicitly deploy:
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy
+```
+
+Enter your budget-alert email and dispatcher password locally when prompted. Do not share access keys, passwords, authentication URLs or tokens. Check `aws sts get-caller-identity --profile rescueroute-key` first. IAM `ReadOnlyAccess` can authenticate and inspect resources but cannot deploy this stack; the helper reports service errors and never grants itself permissions. If the Free Tier plan API is unsupported or denied, it stops without deploying. AWS account verification restrictions also cannot be bypassed.
+
+API throttling is 2 requests/second with a burst of 5. DynamoDB remains on demand for the review: the shared world is a large document, so a blind switch to a very small provisioned table can throttle normal mutations. On-demand requests consume credits or accrue charges. Reserve funds and current balance checks reduce risk but do not account for all future usage, attacks, taxes, expired credits or unrelated resources. A private/unshared URL is not a cost control. Keep the demo short, close unused tabs, avoid repeated benchmarks and remove resources after review.
+
+The authenticated dispatcher protects API operations, while frontend assets remain publicly hosted through CloudFront. Budget notifications, low traffic and these defaults do not enforce an absolute 1 USD or 100 USD ceiling.
 
 ## Prerequisites and deployment
 
@@ -33,7 +55,7 @@ sam build
 sam deploy --guided --stack-name rescueroute-chennai --region eu-north-1
 ```
 
-Confirm IAM role creation when SAM requests it. Initially keep EnableLocation=false. The same region must be used in every script. If the current Location features are unavailable in your chosen region, select a supported region and use it consistently.
+Confirm IAM role creation when SAM requests it. Initially keep EnableLocation=false and EnableCustomMetrics=false. Provide your own BudgetAlertEmail for cost notifications. The same region must be used in every script. If the current Location features are unavailable in your chosen region, select a supported region and use it consistently.
 
 ```bash
 python -m pip install -r requirements-aws.txt
@@ -67,7 +89,7 @@ When provider routing is disabled or fails, the app displays an error/disabled n
 3. Guided dispatch, road closure, hospital update and completion should update shared state in another signed-in window.
 4. Inspect DynamoDB WORLD/DEMO and its revision after actions.
 5. Export a report; verify a private S3 reports/ object and five-minute signed URL.
-6. Inspect Lambda logs and RescueRoute RequestLatency/RequestError metrics.
+6. Inspect Lambda logs. RescueRoute custom metrics/dispatch alarm require EnableCustomMetrics=true and can incur charges.
 7. If Location is enabled, request provider traffic, inspect real geometry/alternatives and shown timestamp. Check CloudWatch/provider errors if unavailable.
 
 Save stack outputs and your own cloud screenshots for submission. Bundled local screenshots and offline SDK tests do not prove deployment.
@@ -104,6 +126,6 @@ This deletes project resources and state. Do not empty unrelated buckets or dele
 
 ## Street atlas endpoint
 
-The SAM stack now includes authenticated `POST /api/street-plan` and 512MB Lambda memory. The bundled directed road graph is packaged with Lambda; display geometry and vendored Leaflet assets are published to S3 by the existing script. This mode requires no Location API calls and uses scenario speed estimates. Street preview closures remain local to the browser request. Rebuild/redeploy and republish the new package to expose the feature in AWS.
+The SAM stack now includes authenticated `POST /api/street-plan` and 1024MB Lambda memory. The bundled directed road graph is packaged with Lambda; display geometry and vendored Leaflet assets are published to S3 by the existing script. This mode requires no Location API calls and uses scenario speed estimates. Street preview closures remain local to the browser request. Rebuild/redeploy and republish the new package to expose the feature in AWS.
 
 Optional OSM tiles are loaded only for the visible map when requested. Attribution is visible; no bulk tile download/prefetch is implemented. Configure `tileUrl` in public frontend configuration to use another compatible provider if needed. Tile requests reveal the viewed area to the provider; selected source coordinates are not sent to a public routing demo.

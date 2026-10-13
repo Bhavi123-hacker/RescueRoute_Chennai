@@ -11,12 +11,22 @@ Parameters:
     Type: String
     Default: ''
     Description: Optional email subscribed to SNS mission alerts (leave blank to skip)
+  BudgetAlertEmail:
+    Type: String
+    NoEcho: true
+    Description: Email for the 1 USD account-wide monthly budget alerts
+  EnableCustomMetrics:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Enable optional chargeable CloudWatch custom metrics and dispatch alarm
 Conditions:
   LocationEnabled: !Equals [!Ref EnableLocation, 'true']
   HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+  CustomMetricsEnabled: !Equals [!Ref EnableCustomMetrics, 'true']
 Globals:
   Function:
-    Tracing: Active
+    Tracing: PassThrough
     Timeout: 29
     Runtime: python3.12
     MemorySize: 512
@@ -90,8 +100,8 @@ Resources:
     Properties:
       StageName: '$default'
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 20
-        ThrottlingRateLimit: 10
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
       CorsConfiguration:
         AllowOrigins:
           - !Sub 'https://${Distribution.DomainName}'
@@ -172,13 +182,14 @@ Resources:
       Runtime: python3.12
       MemorySize: 1024
       Timeout: 29
-      Tracing: Active
+      Tracing: PassThrough
       Environment:
         Variables:
           TABLE_NAME: !Ref DispatchTable
           REPORT_BUCKET: !Ref ReportBucket
           MODEL_BUCKET: !Ref ReportBucket
           ENABLE_LOCATION: !Ref EnableLocation
+          ENABLE_CUSTOM_METRICS: !Ref EnableCustomMetrics
           ALERT_TOPIC_ARN: !Ref AlertTopic
           CONNECTIONS_TABLE: !Ref ConnectionsTable
           WEBSOCKET_URL: !Sub 'wss://${RealtimeApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
@@ -370,6 +381,7 @@ Resources:
               SSEAlgorithm: AES256
   DispatchErrorAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: CustomMetricsEnabled
     Properties:
       AlarmDescription: Repeated dispatch errors in RescueRoute; inspect logs and constraints
       Namespace: RescueRoute
@@ -391,10 +403,39 @@ Resources:
       Budget:
         BudgetName: !Sub '${AWS::StackName}-monthly'
         BudgetLimit:
-          Amount: 40
+          Amount: 1
           Unit: USD
         BudgetType: COST
         TimeUnit: MONTHLY
+        CostTypes:
+          IncludeCredit: false
+          IncludeRefund: false
+          IncludeTax: true
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 50
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 80
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
   MapKey:
     Type: AWS::Location::APIKey
     Condition: LocationEnabled
