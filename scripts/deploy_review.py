@@ -125,7 +125,13 @@ def main(argv=None):
         print(f"Budget stack {args.stack}-budget deployed in us-east-1; app will deploy in {args.region}.")
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
+    if args.local_dashboard:
+        run([sys.executable, "scripts/check_deployment_permissions.py", "--profile", args.profile,
+             "--region", args.region, "--stack", args.stack], environment, timeout=240)
     AWS_CHANGES_STARTED = True
+    if args.local_dashboard:
+        run([sys.executable, "scripts/prepare_review_stack.py", "--profile", args.profile,
+             "--region", args.region, "--stack", args.stack], environment, timeout=360)
     artifact_options = ["--resolve-s3"]
     if args.artifact_bucket:
         run([sys.executable, "scripts/upload_review_artifact.py", "--profile", args.profile,
@@ -192,6 +198,8 @@ def main(argv=None):
                 raise
             time.sleep(5)
     print("Verified: dashboard HTTP 200 and authenticated /api/state HTTP 200.")
+    run([sys.executable, "scripts/review_evidence.py", "--profile", args.profile,
+         "--region", args.region, "--stack", args.stack], environment, timeout=120)
     print("Dashboard:", out["WebsiteUrl"])
     print("Sign in as dispatcher. Run the guided mission to verify the full review journey.")
     print("After review, follow docs/AWS_DEPLOYMENT.md to remove project resources and check retained resources.")

@@ -47,7 +47,8 @@ class DeploymentPolicyTests(unittest.TestCase):
     def test_api_management_covers_stage_tagging_only_in_the_selected_region(self):
         api = next(s for s in self.policy["Statement"] if "apigateway:*" in s["Action"])
         self.assertEqual(api["Resource"], ["arn:aws:apigateway:eu-north-1::/apis",
-                                          "arn:aws:apigateway:eu-north-1::/apis/*"])
+                                          "arn:aws:apigateway:eu-north-1::/apis/*",
+                                          "arn:aws:apigateway:eu-north-1::/tags/arn%3Aaws%3Aapigateway%3Aeu-north-1%3A%3A%2Fv2%2Fapis%2F*"])
         for resource in ("arn:aws:apigateway:eu-north-1::/apis/example/stages",
                          "arn:aws:apigateway:eu-north-1::/apis/example/stages/prod"):
             self.assertTrue(any(fnmatch.fnmatchcase(resource, scope) for scope in api["Resource"]))
@@ -75,8 +76,14 @@ class DeploymentPolicyTests(unittest.TestCase):
             "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
             "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"})
         self.assertEqual(attachments["Resource"], [
-            "arn:aws:iam::123456789012:role/rescueroute-chennai-BackendRole-*",
-            "arn:aws:iam::123456789012:role/rescueroute-chennai-SageMakerRole-*"])
+            "arn:aws:iam::123456789012:role/rescueroute-chennai-BackendRole-*"])
+
+    def test_http_api_encoded_tag_endpoint_matches_the_actual_failure_arn(self):
+        api = next(s for s in self.policy["Statement"] if "apigateway:*" in s["Action"])
+        actual = "arn:aws:apigateway:eu-north-1::/tags/arn%3Aaws%3Aapigateway%3Aeu-north-1%3A%3A%2Fv2%2Fapis%2F*"
+        self.assertTrue(any(fnmatch.fnmatchcase(actual, scope) for scope in api["Resource"]))
+        unrelated = "arn:aws:apigateway:eu-north-1::/tags/arn%3Aaws%3Aapigateway%3Aeu-north-1%3A%3A%2Fdomainnames%2Fexample.com"
+        self.assertFalse(any(fnmatch.fnmatchcase(unrelated, scope) for scope in api["Resource"]))
 
 
 if __name__ == "__main__":

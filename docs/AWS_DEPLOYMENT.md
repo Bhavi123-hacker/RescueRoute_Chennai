@@ -38,10 +38,19 @@ py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy --reuse-exi
 ```
 
 Apply the latest generated deployment policy first, including SAM's X-Ray policy
-attachment. If the previous app creation ended in `ROLLBACK_COMPLETE` and its
-attempted resources were deleted, remove only that failed application stack and
-wait for deletion before retrying. Preserve the budget and healthy SAM support
-stack/bucket. The helper retains credit/reserve checks, budget/alert verification,
+attachment and HTTP API's encoded `/tags/arn%3Aaws...%2Fv2%2Fapis%2F*` endpoint.
+The local mode runs a native, read-only IAM simulation before changing the app or
+uploading artifacts. With ReadOnlyAccess attached, run it separately before a build:
+
+```powershell
+py -3.12 scripts/check_deployment_permissions.py --profile rescueroute-key
+```
+
+After permissions pass, the helper removes only a `ROLLBACK_COMPLETE` app stack
+whose resources are all already `DELETE_COMPLETE`, then waits for deletion.
+It preserves healthy stacks and refuses to delete retained or undeleted resources.
+Preserve the budget and healthy SAM support stack/bucket.
+The helper retains credit/reserve checks, budget/alert verification,
 single-request artifact upload, and disabled Location/custom metrics.
 
 The publisher writes local client configuration and uploads private model/catalog
@@ -52,6 +61,12 @@ directory, bound to `127.0.0.1`; no public website is published. An unrelated bu
 port is not terminated. Close the server window after review; AWS cleanup is
 separate. On other operating systems, the printed server PID is also saved under
 `.aws-sam/review/local-dashboard.pid`.
+
+After successful stack, login, API and page checks, the helper writes
+`.aws-sam/review/aws-screenshots.md`, listing actual CloudFormation resource IDs
+and honest screenshot captions for your report. Capture these in your own AWS
+Console. In local mode do not claim CloudFront hosting, Location routing or
+SageMaker training. A SageMaker IAM role alone does not demonstrate training.
 
 Document this mode as an AWS backend with a local dashboard. It does not establish
 CloudFront usage or clear the account's verification restriction. Other account
@@ -249,9 +264,17 @@ For the separate BackendRole AttachRolePolicy failure, the deployment generator
 now permits the exact AWSXrayWriteOnlyAccess policy that SAM automatically adds
 when the Tracing property is present, along with the basic Lambda logging policy
 and the template's explicit AWSXRayDaemonWriteAccess. The attachment grant remains
-limited to the project's role prefixes and those three policies. Regenerate the
+limited to the project's BackendRole prefix and those three policies. Regenerate the
 deployment policy and update its default JSON before a later retry. PassThrough
 tracing remains configured; this permission does not enable active tracing.
+
+For `Api CREATE_FAILED` with `apigateway:POST` on an encoded `/tags/arn%3Aaws...`
+resource, regenerate the deployment policy and replace its DEFAULT JSON version.
+The grant covers only encoded HTTP/WebSocket API tagging paths in the chosen region;
+it does not include domain or unrelated regional management paths. The temporary
+backend permission preflight checks this exact path before another deployment.
+IAM simulation cannot establish account verification, service availability or
+quotas; successful live deployment and demonstration still need your AWS session.
 
 - Activation error: complete account verification/support steps before deployment.
 - 401: sign in again; confirm generated API URL, Cognito client and region.

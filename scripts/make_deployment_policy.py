@@ -45,7 +45,7 @@ def deployment_policy(account, region, stack):
              f"arn:aws:iam::{account}:role/{stack}-SageMakerRole-*"]
     allow(["iam:CreateRole", "iam:DeleteRole", "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy",
            "iam:DeleteRolePolicy", "iam:TagRole", "iam:UntagRole"], roles)
-    allow(["iam:AttachRolePolicy", "iam:DetachRolePolicy"], roles,
+    allow(["iam:AttachRolePolicy", "iam:DetachRolePolicy"], [roles[0]],
           {"ArnEquals": {"iam:PolicyARN": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
                                           "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
                                           "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]}})
@@ -61,7 +61,8 @@ def deployment_policy(account, region, stack):
     # named IAM action in API Gateway's public HTTP-verb authorization model.
     # Cover its management actions on the same selected-region API paths only.
     allow(["apigateway:*"],
-          [f"arn:aws:apigateway:{region}::/apis", f"arn:aws:apigateway:{region}::/apis/*"])
+          [f"arn:aws:apigateway:{region}::/apis", f"arn:aws:apigateway:{region}::/apis/*",
+           f"arn:aws:apigateway:{region}::/tags/arn%3Aaws%3Aapigateway%3A{region}%3A%3A%2Fv2%2Fapis%2F*"])
     project_tag = {"StringEquals": {"aws:ResourceTag/Project": "RescueRoute"}}
     allow(["cognito-idp:CreateUserPool"], ["*"],
           {"StringEquals": {"aws:RequestTag/Project": "RescueRoute"}})

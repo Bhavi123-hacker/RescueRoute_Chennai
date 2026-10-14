@@ -88,8 +88,34 @@ class LocalDashboardTests(unittest.TestCase):
             self.assertIn(setting, application)
         self.assertIn('.aws-sam/review/template.json', application)
         self.assertTrue(any(c[1] == 'scripts/verify_review_budget.py' for c in calls))
+        preflight = next(c for c in calls if c[1] == 'scripts/check_deployment_permissions.py')
+        recovery = next(c for c in calls if c[1] == 'scripts/prepare_review_stack.py')
+        artifact = next(c for c in calls if c[1] == 'scripts/upload_review_artifact.py')
+        self.assertLess(calls.index(preflight), calls.index(recovery))
+        self.assertLess(calls.index(recovery), calls.index(artifact))
+        self.assertTrue(any(c[1] == 'scripts/review_evidence.py' for c in calls))
         state.assert_called_once_with('https://api.example/api/state', 'test-token')
         start.assert_called_once()
+
+    def test_permission_failure_prevents_recovery_upload_and_application_changes(self):
+        plan = {'accountPlanType': 'FREE', 'accountPlanStatus': 'ACTIVE',
+                'accountPlanRemainingCredits': {'amount': 90, 'unit': 'USD'}}
+        identity = {'Arn': 'arn:aws:iam::123456789012:user/test', 'Account': '123456789012'}
+        def run(command, *args, **kwargs):
+            if command[1:3] == ['sts', 'get-caller-identity']:
+                return json.dumps(identity)
+            if command[1:3] == ['freetier', 'get-account-plan-state']:
+                return json.dumps(plan)
+            if command[1] == 'scripts/check_deployment_permissions.py':
+                raise RuntimeError('permission denied')
+        with patch.object(deploy_review.shutil, 'which', side_effect=lambda name: name), \
+                patch.object(deploy_review, 'run', side_effect=run) as commands, \
+                patch('builtins.input', return_value='review@example.com'), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(RuntimeError, 'permission denied'):
+            deploy_review.main(['--deploy', '--reuse-existing-budget', '--local-dashboard'])
+        self.assertFalse(deploy_review.AWS_CHANGES_STARTED)
+        self.assertFalse(any(c.args[0][1] in ('scripts/prepare_review_stack.py', 'scripts/upload_review_artifact.py', 'deploy')
+                             for c in commands.call_args_list))
 
     def test_server_reuses_only_matching_configuration_and_page(self):
         response = MagicMock()
