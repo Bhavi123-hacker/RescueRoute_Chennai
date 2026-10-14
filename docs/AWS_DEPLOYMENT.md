@@ -94,7 +94,17 @@ The generator only reads STS and creates a local JSON file, which is ignored by 
 
 The policy includes the Free Tier plan read, CloudFormation, packaging/publishing, operator setup and the stack's services. CloudFormation grants include only the named application/budget stacks and the shared SAM packaging stack. If you previously generated the policy before the budget was split out, regenerate it and replace the JSON in **IAM > Policies > RescueRouteReviewDeployment > Edit > JSON**, then save the new default version. This adds the named budget stack permissions in `us-east-1`; reattaching the same policy is unnecessary.
 
-Named resources are limited to the stack prefixes; Cognito/CloudFront modifications use the `Project=RescueRoute` tag, which the template explicitly applies. API Gateway writes cover API resources in the selected region because their IDs are allocated during creation. CloudFront origin-access-control writes are not name-scoped; new distribution tagging can apply the project tag. These broader grants should only be used by a trusted deployment operator and removed after review. The shared SAM artifact bucket also has upload/delete permissions; never delete unrelated artifacts or its shared stack.
+Named resources are limited to the stack prefixes; Cognito/CloudFront modifications use the `Project=RescueRoute` tag, which the template explicitly applies. API Gateway management uses `apigateway:*` only on `/apis` and `/apis/*` in the selected region, including stage tagging checked by CloudFormation. API IDs are allocated during creation; this grant therefore also covers other APIs in that region. It does not cover custom domains, other regions, or other AWS services. CloudFront origin-access-control writes are not name-scoped; new distribution tagging can apply the project tag. These broader grants should only be used by a trusted deployment operator and removed after review. The shared SAM artifact bucket also has upload/delete permissions; never delete unrelated artifacts or its healthy shared stack.
+
+The corrected generator includes SAM transform access, SAM bucket versioning and
+failed-support-stack cleanup, and DynamoDB TTL configuration. Existing users must
+regenerate `review-deployment-policy.json` and replace the customer-managed
+policy's JSON, saving the new version as default. This does not alter AWS resource
+state by itself. If the app stack is `ROLLBACK_COMPLETE` after a failed initial
+creation, inspect its Events and Resources first. Once all its attempted resources
+are deleted (as shown in the supplied stage-tagging failure log), remove only the
+failed application stack and wait for deletion before retrying. Preserve the
+healthy budget and shared SAM stack/bucket.
 
 It explicitly denies account-plan upgrade, Organizations operations, Location API calls and SageMaker training/endpoint creation for this user. This is not a permissions boundary for Lambda execution roles or a spending cap. Service control policies, permission boundaries, expired credentials or account verification can still block a deployment. No policy is created or attached automatically by the helper.
 

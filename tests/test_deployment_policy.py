@@ -1,5 +1,6 @@
 """Check the generated deployment policy's account and privilege boundaries."""
 import json
+import fnmatch
 import unittest
 
 from scripts.make_deployment_policy import deployment_policy
@@ -42,6 +43,30 @@ class DeploymentPolicyTests(unittest.TestCase):
                      ("123456789012", "eu-north-1", "*")]:
             with self.subTest(args=args), self.assertRaises(ValueError):
                 deployment_policy(*args)
+
+    def test_api_management_covers_stage_tagging_only_in_the_selected_region(self):
+        api = next(s for s in self.policy["Statement"] if "apigateway:*" in s["Action"])
+        self.assertEqual(api["Resource"], ["arn:aws:apigateway:eu-north-1::/apis",
+                                          "arn:aws:apigateway:eu-north-1::/apis/*"])
+        for resource in ("arn:aws:apigateway:eu-north-1::/apis/example/stages",
+                         "arn:aws:apigateway:eu-north-1::/apis/example/stages/prod"):
+            self.assertTrue(any(fnmatch.fnmatchcase(resource, scope) for scope in api["Resource"]))
+        for resource in ("arn:aws:apigateway:us-east-1::/apis/example/stages",
+                         "arn:aws:apigateway:eu-north-1::/domainnames/example.com"):
+            self.assertFalse(any(fnmatch.fnmatchcase(resource, scope) for scope in api["Resource"]))
+
+    def test_sam_transform_versioning_and_failed_support_stack_cleanup(self):
+        def resources_for(action):
+            return [r for s in self.policy["Statement"] if s["Effect"] == "Allow"
+                    and action in s["Action"] for r in s["Resource"]]
+        self.assertIn("arn:aws:cloudformation:eu-north-1:aws:transform/Serverless-2016-10-31",
+                      resources_for("cloudformation:CreateChangeSet"))
+        self.assertIn("arn:aws:cloudformation:eu-north-1:123456789012:stack/aws-sam-cli-managed-default/*",
+                      resources_for("cloudformation:DeleteStack"))
+        for action in ("s3:PutBucketVersioning", "s3:DeleteBucket"):
+            self.assertIn("arn:aws:s3:::aws-sam-cli-managed-default-*", resources_for(action))
+        self.assertEqual(resources_for("dynamodb:UpdateTimeToLive"),
+                         ["arn:aws:dynamodb:eu-north-1:123456789012:table/rescueroute-chennai-*"])
 
 
 if __name__ == "__main__":

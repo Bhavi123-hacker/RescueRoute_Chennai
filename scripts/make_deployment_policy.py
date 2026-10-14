@@ -32,11 +32,14 @@ def deployment_policy(account, region, stack):
     allow(["cloudformation:CreateStack", "cloudformation:UpdateStack", "cloudformation:CreateChangeSet",
            "cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet", "cloudformation:TagResource",
            "cloudformation:UntagResource"], [cf + stack + "/*", cf + "aws-sam-cli-managed-default/*", budget_stack])
-    allow(["cloudformation:DeleteStack"], [cf + stack + "/*", budget_stack])
+    allow(["cloudformation:DeleteStack"], [cf + stack + "/*", cf + "aws-sam-cli-managed-default/*", budget_stack])
+    allow(["cloudformation:CreateChangeSet"],
+          [f"arn:aws:cloudformation:{region}:aws:transform/Serverless-2016-10-31"])
     buckets = [f"arn:aws:s3:::{stack.lower()}-*", "arn:aws:s3:::aws-sam-cli-managed-default-*"]
     allow(["s3:CreateBucket", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:PutBucketPublicAccessBlock",
-           "s3:PutBucketOwnershipControls", "s3:PutEncryptionConfiguration", "s3:PutBucketTagging"], buckets)
-    allow(["s3:DeleteBucket"], [buckets[0]])
+           "s3:PutBucketOwnershipControls", "s3:PutEncryptionConfiguration", "s3:PutBucketTagging",
+           "s3:PutBucketVersioning"], buckets)
+    allow(["s3:DeleteBucket"], buckets)
     allow(["s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload"], [bucket + "/*" for bucket in buckets])
     roles = [f"arn:aws:iam::{account}:role/{stack}-BackendRole-*",
              f"arn:aws:iam::{account}:role/{stack}-SageMakerRole-*"]
@@ -50,10 +53,13 @@ def deployment_policy(account, region, stack):
            "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission",
            "lambda:TagResource", "lambda:UntagResource"],
           [f"arn:aws:lambda:{region}:{account}:function:{stack}-*"])
-    allow(["dynamodb:CreateTable", "dynamodb:UpdateTable", "dynamodb:DeleteTable",
+    allow(["dynamodb:CreateTable", "dynamodb:UpdateTable", "dynamodb:DeleteTable", "dynamodb:UpdateTimeToLive",
            "dynamodb:TagResource", "dynamodb:UntagResource"],
           [f"arn:aws:dynamodb:{region}:{account}:table/{stack}-*"])
-    allow(["apigateway:POST", "apigateway:PUT", "apigateway:PATCH", "apigateway:DELETE"],
+    # CloudFormation stage creation checks TagResource, which isn't listed as a
+    # named IAM action in API Gateway's public HTTP-verb authorization model.
+    # Cover its management actions on the same selected-region API paths only.
+    allow(["apigateway:*"],
           [f"arn:aws:apigateway:{region}::/apis", f"arn:aws:apigateway:{region}::/apis/*"])
     project_tag = {"StringEquals": {"aws:ResourceTag/Project": "RescueRoute"}}
     allow(["cognito-idp:CreateUserPool"], ["*"],
