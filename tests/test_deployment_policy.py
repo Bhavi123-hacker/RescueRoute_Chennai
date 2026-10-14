@@ -68,6 +68,16 @@ class DeploymentPolicyTests(unittest.TestCase):
         self.assertEqual(resources_for("dynamodb:UpdateTimeToLive"),
                          ["arn:aws:dynamodb:eu-north-1:123456789012:table/rescueroute-chennai-*"])
 
+    def test_role_attachments_cover_sam_generated_policies_without_admin_policy_grants(self):
+        attachments = next(s for s in self.policy["Statement"] if "iam:AttachRolePolicy" in s["Action"])
+        self.assertEqual(set(attachments["Condition"]["ArnEquals"]["iam:PolicyARN"]), {
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
+            "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"})
+        self.assertEqual(attachments["Resource"], [
+            "arn:aws:iam::123456789012:role/rescueroute-chennai-BackendRole-*",
+            "arn:aws:iam::123456789012:role/rescueroute-chennai-SageMakerRole-*"])
+
 
 if __name__ == "__main__":
     unittest.main()

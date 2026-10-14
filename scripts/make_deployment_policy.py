@@ -47,6 +47,7 @@ def deployment_policy(account, region, stack):
            "iam:DeleteRolePolicy", "iam:TagRole", "iam:UntagRole"], roles)
     allow(["iam:AttachRolePolicy", "iam:DetachRolePolicy"], roles,
           {"ArnEquals": {"iam:PolicyARN": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+                                          "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
                                           "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"]}})
     allow(["iam:PassRole"], [roles[0]], {"StringEquals": {"iam:PassedToService": "lambda.amazonaws.com"}})
     allow(["lambda:CreateFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",

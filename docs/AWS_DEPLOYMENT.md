@@ -204,6 +204,21 @@ This deletes project resources and state. Do not empty unrelated buckets or dele
 
 ## Troubleshooting
 
+If CloudFront reports "Your account must be verified before you can add new
+CloudFront resources", stop retrying deployment and contact AWS Support through
+an Account and billing case. Include the exact error, eu-north-1 application
+region and request ID from the failed distribution event. IAM permissions cannot
+resolve this account-verification restriction. The CloudFront-based architecture
+remains blocked until AWS clears it; no account upgrade is required by this workflow.
+
+For the separate BackendRole AttachRolePolicy failure, the deployment generator
+now permits the exact AWSXrayWriteOnlyAccess policy that SAM automatically adds
+when the Tracing property is present, along with the basic Lambda logging policy
+and the template's explicit AWSXRayDaemonWriteAccess. The attachment grant remains
+limited to the project's role prefixes and those three policies. Regenerate the
+deployment policy and update its default JSON before a later retry. PassThrough
+tracing remains configured; this permission does not enable active tracing.
+
 - Activation error: complete account verification/support steps before deployment.
 - 401: sign in again; confirm generated API URL, Cognito client and region.
 - 409: shared revision changed; calculate a fresh plan. Live mode also returns 409 when disabled.
