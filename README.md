@@ -54,11 +54,23 @@ python ml/train.py
 
 ## AWS deployment
 
-The SAM template implements Cognito, HTTP API, WebSocket API, Lambda (+ X-Ray), DynamoDB, SNS alerts, private S3/CloudFront, IAM, CloudWatch, Budgets and a SageMaker training role. Amazon Location (maps, Places, traffic routes) is optional.
+The SAM application template implements Cognito, HTTP API, WebSocket API, Lambda, DynamoDB, SNS alerts, private S3/CloudFront, IAM, CloudWatch and a SageMaker training role. Amazon Location (maps, Places, traffic routes) is optional. Review defaults disable active X-Ray tracing and custom CloudWatch metrics and lower API throttling. The review helper first deploys `template-budget.yaml` as `rescueroute-chennai-budget` in `us-east-1`, with a **1 USD account-wide monthly budget before credits** and required `BudgetAlertEmail` notifications; the app deploys separately in `eu-north-1`. The budget is an alert, not a hard spending cap. See `docs/AWS_DEPLOYMENT.md` for limits, permissions and cleanup.
+
+For a temporary review, run the helper in your authenticated local terminal (not a stalled agent shell):
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key
+# After check-only succeeds and deployment permissions are ready:
+py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy
+```
+
+It checks remaining credits, keeps a 10 USD reserve, builds/publishes the dashboard, prompts locally for the operator password, and verifies the website plus an authenticated API. It never upgrades the account or starts cloud training. Read-only IAM permissions cannot deploy; missing permissions or unverified credits stop the helper. A current balance check cannot guarantee future charges remain below the budget.
 
 ```bash
 aws configure
 aws sts get-caller-identity
+# Establish the account-wide budget first (replace the email locally):
+aws cloudformation deploy --template-file template-budget.yaml --stack-name rescueroute-chennai-budget --region us-east-1 --parameter-overrides BudgetName=rescueroute-chennai-monthly BudgetAlertEmail=you@example.com --no-fail-on-empty-changeset
 sam build
 sam deploy --guided --stack-name rescueroute-chennai --region eu-north-1
 # Optional parameters: EnableLocation=true  AlertEmail=you@example.com
@@ -79,7 +91,7 @@ Start with `EnableLocation=false`. To enable provider traffic, Places search and
 python -m unittest discover -s tests -v
 ```
 
-There are 51 tests: 47 core and four optional AWS SDK adapter tests. Install `requirements-aws.txt` to run the adapter tests; otherwise they skip. The graph suite includes 3,888 A*/Dijkstra endpoint comparisons and independent Floyd–Warshall checks.
+There are 66 tests: 62 core and four optional AWS SDK adapter tests. Install `requirements-aws.txt` to run the adapter tests; otherwise they skip. The graph suite includes 3,888 A*/Dijkstra endpoint comparisons and independent Floyd–Warshall checks.
 
 Browser checks require Node and Playwright:
 
@@ -89,7 +101,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Optional infrastructure lint: `cfn-lint template.yaml`. Read `docs/VERIFICATION.md`, `docs/DEMO_GUIDE.md`, `docs/PROJECT_DESIGN.md` and the PDF report. Screenshots and a sample mission export are in `docs/`.
+Infrastructure lint must specify the deployment regions: `cfn-lint --regions eu-north-1 --template template.yaml` and `cfn-lint --regions us-east-1 --template template-budget.yaml`. Read `docs/VERIFICATION.md`, `docs/DEMO_GUIDE.md`, `docs/PROJECT_DESIGN.md` and the PDF report. Screenshots and a sample mission export are in `docs/`.
 
 ## Directory reproduction and license
 

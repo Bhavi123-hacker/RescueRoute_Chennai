@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RescueRoute account-wide 1 USD monitoring budget (deploy in us-east-1)
+Parameters:
+  BudgetName:
+    Type: String
+    Description: Budget name associated with the application stack
+  BudgetAlertEmail:
+    Type: String
+    NoEcho: true
+    Description: Email for the 1 USD account-wide monthly budget alerts
+Resources:
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Ref BudgetName
+        BudgetLimit:
+          Amount: 1
+          Unit: USD
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        CostTypes:
+          IncludeCredit: false
+          IncludeRefund: false
+          IncludeTax: true
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 50
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 80
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            ThresholdType: PERCENTAGE
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetAlertEmail
+Outputs:
+  BudgetName:
+    Value: !Ref MonthlyBudget

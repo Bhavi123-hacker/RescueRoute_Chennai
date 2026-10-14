@@ -6,3 +6,4 @@ __pycache__/
 samconfig.toml
 .env
 node_modules/
+review-deployment-policy.json
