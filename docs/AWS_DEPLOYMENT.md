@@ -63,6 +63,24 @@ aws freetier get-account-plan-state --profile rescueroute-key --region us-east-1
 
 Policy reference: https://docs.aws.amazon.com/service-authorization/latest/reference/list_freetier.html
 
+### Retry an interrupted artifact upload
+
+If SAM's multipart upload repeatedly times out or closes its connection, preserve
+the healthy SAM support stack and pass its existing bucket to the review helper:
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy --artifact-bucket YOUR_EXISTING_SAM_BUCKET
+```
+
+This option packages the built backend into a repeatable ZIP, uploads it with one
+S3 PutObject request (no multipart transfer), and supplies SAM a template with the
+remote artifact reference. The upload uses a 300-second response timeout, up to
+four SDK attempts, an MD5 integrity check, SHA-256 object metadata, and SSE-S3
+encryption. A matching existing object is reused. The bucket's owner and region
+are checked; no bucket is created and no TLS checks are disabled. Deployment
+stops if upload or verification fails. A persistently broken network can still
+prevent upload; try another connection if the new method also fails.
+
 ### Deployment permissions for the review
 
 If the IAM user only has `ReadOnlyAccess`, generate the additional deployment policy locally:

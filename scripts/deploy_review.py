@@ -58,6 +58,7 @@ def main(argv=None):
     parser.add_argument("--profile", default="rescueroute-key")
     parser.add_argument("--region", default="eu-north-1")
     parser.add_argument("--stack", default="rescueroute-chennai")
+    parser.add_argument("--artifact-bucket", help="Use a verified single-request upload to this existing S3 bucket")
     parser.add_argument("--reserve-usd", type=float, default=10)
     parser.add_argument("--deploy", action="store_true", help="Create/update AWS resources and publish the demo")
     args = parser.parse_args(argv)
@@ -110,8 +111,14 @@ def main(argv=None):
     print(f"Budget stack {args.stack}-budget deployed in us-east-1; app will deploy in {args.region}.")
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
+    artifact_options = ["--resolve-s3"]
+    if args.artifact_bucket:
+        run([sys.executable, "scripts/upload_review_artifact.py", "--profile", args.profile,
+             "--region", args.region, "--bucket", args.artifact_bucket], environment, timeout=1800)
+        artifact_options = ["--s3-bucket", args.artifact_bucket, "--template-file",
+                            ".aws-sam/review/template.json"]
     run([sam, "deploy", "--stack-name", args.stack, "--region", args.region,
-         "--resolve-s3", "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
+         *artifact_options, "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
          "--no-fail-on-empty-changeset", "--parameter-overrides", "EnableLocation=false",
          "EnableCustomMetrics=false", "AlertEmail=''"], environment, timeout=3600)
     run([sys.executable, "scripts/publish_frontend.py", "--stack", args.stack,
