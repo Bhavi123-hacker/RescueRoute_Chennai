@@ -20,11 +20,30 @@ def verify_budget(client, account, name, email):
     if (budget.get("BudgetName") != name or budget.get("BudgetType") != "COST"
             or budget.get("TimeUnit") != "MONTHLY" or not one_dollar or limit.get("Unit") != "USD"):
         raise RuntimeError("Existing budget must be a monthly 1 USD COST budget; app deployment stopped.")
-    cost_types = budget.get("CostTypes", {})
-    if (cost_types.get("IncludeCredit") is not False
-            or cost_types.get("IncludeRefund") is not False or cost_types.get("IncludeTax") is not True):
-        raise RuntimeError("Existing budget must exclude credits/refunds and include tax; app deployment stopped.")
-    if any(budget.get(key) for key in ("CostFilters", "FilterExpression", "AutoAdjustData", "PlannedBudgetLimits")):
+    expression = budget.get("FilterExpression")
+    if expression:
+        # The current console stores charge exclusions as a negated RECORD_TYPE
+        # dimension and omits the deprecated CostTypes field. Accept precisely
+        # Credit/Refund exclusions; service, region and tax exclusions still fail.
+        negated = expression.get("Not", {})
+        dimensions = negated.get("Dimensions", {})
+        values = dimensions.get("Values", [])
+        options = dimensions.get("MatchOptions", [])
+        if (set(expression) != {"Not"} or set(negated) != {"Dimensions"}
+                or set(dimensions) - {"Key", "Values", "MatchOptions"}
+                or dimensions.get("Key") != "RECORD_TYPE"
+                or not isinstance(values, list) or not all(isinstance(v, str) for v in values)
+                or set(values) != {"Credit", "Refund"}
+                or not isinstance(options, list) or not all(isinstance(v, str) for v in options)
+                or set(options) - {"EQUALS", "CASE_SENSITIVE"}):
+            raise RuntimeError("Saved budget filter must exclude only Credit and Refund, keeping Tax included. "
+                               "Correct the filter and save the budget; app deployment stopped.")
+    else:
+        cost_types = budget.get("CostTypes") or {}
+        if (cost_types.get("IncludeCredit") is not False
+                or cost_types.get("IncludeRefund") is not False or cost_types.get("IncludeTax") is not True):
+            raise RuntimeError("Existing budget must exclude credits/refunds and include tax; app deployment stopped.")
+    if any(budget.get(key) for key in ("CostFilters", "AutoAdjustData", "PlannedBudgetLimits")):
         raise RuntimeError("Existing budget must be fixed and account-wide; app deployment stopped.")
     now = datetime.now(timezone.utc)
     period = budget.get("TimePeriod", {})

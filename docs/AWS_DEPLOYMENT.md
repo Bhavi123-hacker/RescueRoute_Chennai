@@ -94,6 +94,17 @@ or missing alerts stop application deployment. The option can be combined with
 `--artifact-bucket`. It verifies monitoring without repairing the budget stack's
 CloudFormation resource identity; inspect that identity before later cleanup.
 
+Budget verification supports both legacy `CostTypes` flags and the current
+console's `FilterExpression`. The accepted modern expression excludes exactly
+the `RECORD_TYPE` values `Credit` and `Refund` using `Not`; it keeps tax included
+and does not restrict services or regions. An expression excluding `Tax` fails
+with instructions to save the correct filter. Unsaved console edits do not alter
+the API response. Check the saved budget before rebuilding the app:
+
+```powershell
+py -3.12 scripts/verify_review_budget.py --profile rescueroute-key --account YOUR_ACCOUNT_ID --name rescueroute-chennai-monthly --email YOUR_BUDGET_EMAIL
+```
+
 If the IAM user only has `ReadOnlyAccess`, generate the additional deployment policy locally:
 
 ```powershell

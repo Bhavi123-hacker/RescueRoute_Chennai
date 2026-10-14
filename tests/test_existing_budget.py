@@ -56,6 +56,39 @@ class ExistingBudgetTests(unittest.TestCase):
             verify_budget(client, self.account, self.name, self.email)
             stub.assert_no_pending_responses()
 
+    def test_current_console_charge_filter_works_without_legacy_fields(self):
+        for options in (None, ["EQUALS", "CASE_SENSITIVE"]):
+            dimensions = {"Key": "RECORD_TYPE", "Values": ["Credit", "Refund"]}
+            if options is not None:
+                dimensions["MatchOptions"] = options
+            budget = {**self.budget, "CostTypes": None, "CostFilters": None,
+                      "FilterExpression": {"Not": {"Dimensions": dimensions}}}
+            self.client.describe_budget.return_value = {"Budget": budget}
+            with self.subTest(options=options):
+                self.verify()
+
+    def test_saved_tax_exclusion_and_incomplete_charge_exclusions_fail(self):
+        for values in (["Tax"], ["Credit"], ["Refund"], ["Credit", "Refund", "Tax"]):
+            budget = {**self.budget, "CostTypes": None, "CostFilters": None,
+                      "FilterExpression": {"Not": {"Dimensions": {"Key": "RECORD_TYPE", "Values": values}}}}
+            self.client.describe_budget.return_value = {"Budget": budget}
+            with self.subTest(values=values), self.assertRaisesRegex(RuntimeError, "keeping Tax included"):
+                self.verify()
+        self.client.describe_subscribers_for_notification.assert_not_called()
+
+    def test_charge_filters_cannot_hide_service_region_or_positive_charge_scope(self):
+        valid = {"Not": {"Dimensions": {"Key": "RECORD_TYPE", "Values": ["Credit", "Refund"]}}}
+        invalid = [{"Not": {"Dimensions": {"Key": "SERVICE", "Values": ["Credit", "Refund"]}}},
+                   {"Dimensions": {"Key": "RECORD_TYPE", "Values": ["Credit", "Refund"]}},
+                   {"And": [valid, {"Dimensions": {"Key": "REGION", "Values": ["eu-north-1"]}}]},
+                   {"Not": {"Dimensions": {"Key": "RECORD_TYPE", "Values": ["Credit", "Refund"],
+                                           "MatchOptions": ["CONTAINS"]}}}]
+        for expression in invalid:
+            self.client.describe_budget.return_value = {"Budget": {**self.budget, "FilterExpression": expression}}
+            with self.subTest(expression=expression), self.assertRaises(RuntimeError):
+                self.verify()
+        self.client.describe_subscribers_for_notification.assert_not_called()
+
     def test_missing_budget_or_access_denied_stops_reuse(self):
         for code in ("NotFoundException", "AccessDeniedException"):
             self.client.describe_budget.side_effect = ClientError({"Error": {"Code": code}}, "DescribeBudget")
