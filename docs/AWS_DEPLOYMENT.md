@@ -24,6 +24,40 @@ Training uses scikit-learn locally by default. The SAM stack also creates a Sage
 
 ## Temporary review with a 1 USD monitoring budget
 
+### AWS backend with a temporary dashboard on your PC
+
+When CloudFront account verification blocks creation, add `--local-dashboard`.
+It sets `EnableCloudFront=false` and omits the distribution, origin access control,
+frontend bucket and frontend bucket policy. Lambda, HTTP/WebSocket API Gateway,
+Cognito, DynamoDB, private report S3, SNS and IAM remain on AWS. API CORS permits
+exactly `http://localhost:8020`; Cognito authorization remains enabled. The
+CloudFront deployment is still the default.
+
+```powershell
+py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy --reuse-existing-budget --artifact-bucket YOUR_EXISTING_SAM_BUCKET --local-dashboard
+```
+
+Apply the latest generated deployment policy first, including SAM's X-Ray policy
+attachment. If the previous app creation ended in `ROLLBACK_COMPLETE` and its
+attempted resources were deleted, remove only that failed application stack and
+wait for deletion before retrying. Preserve the budget and healthy SAM support
+stack/bucket. The helper retains credit/reserve checks, budget/alert verification,
+single-request artifact upload, and disabled Location/custom metrics.
+
+The publisher writes local client configuration and uploads private model/catalog
+artifacts. The helper securely provisions the dispatcher, verifies the authenticated
+AWS state endpoint, and starts a separate static-server window on Windows. Open
+the printed `http://localhost:8020` URL and sign in. This serves only the frontend
+directory, bound to `127.0.0.1`; no public website is published. An unrelated busy
+port is not terminated. Close the server window after review; AWS cleanup is
+separate. On other operating systems, the printed server PID is also saved under
+`.aws-sam/review/local-dashboard.pid`.
+
+Document this mode as an AWS backend with a local dashboard. It does not establish
+CloudFront usage or clear the account's verification restriction. Other account
+or service restrictions may still prevent deployment, so the authenticated AWS
+session must complete the actual cloud validation.
+
 The helper first deploys `template-budget.yaml` as the separate **rescueroute-chennai-budget** CloudFormation stack in **us-east-1**. The Budgets CloudFormation resource is unavailable in the app's **eu-north-1** region, so it is absent from `template.yaml`. This budget still monitors account-wide costs across regions. Both templates are validated in their actual deployment regions before resources are created; a failed budget deployment stops the app deployment. A custom `--stack NAME` uses `NAME-budget` for this stack.
 
 The budget is **account-wide and monthly with a 1 USD limit**, with email alerts above 0.50, 0.80 and 1.00 USD. `BudgetAlertEmail` is required on the budget template and separate from optional mission-alert recipients. Credits and refunds are excluded from this budget so credit-covered usage remains visible. Other AWS resources and earlier usage in the same month also count; alerts may therefore fire immediately. This is not an incremental project budget, an account spending cap, or a guarantee of free usage. Budgets notifications can arrive after charges have accrued. The budget resets each month and does not monitor lifetime spending.

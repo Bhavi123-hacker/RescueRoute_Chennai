@@ -14,6 +14,10 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 AWS_CHANGES_STARTED = False
+if __package__:
+    from .local_dashboard import start_dashboard
+else:
+    from local_dashboard import start_dashboard
 
 
 def check_credits(plan, reserve):
@@ -61,6 +65,8 @@ def main(argv=None):
     parser.add_argument("--artifact-bucket", help="Use a verified single-request upload to this existing S3 bucket")
     parser.add_argument("--reuse-existing-budget", action="store_true",
                         help="Verify the existing $1 budget and alerts without updating its CloudFormation stack")
+    parser.add_argument("--local-dashboard", action="store_true",
+                        help="Deploy the AWS backend without CloudFront; serve the dashboard on this PC")
     parser.add_argument("--reserve-usd", type=float, default=10)
     parser.add_argument("--deploy", action="store_true", help="Create/update AWS resources and publish the demo")
     args = parser.parse_args(argv)
@@ -129,7 +135,8 @@ def main(argv=None):
     run([sam, "deploy", "--stack-name", args.stack, "--region", args.region,
          *artifact_options, "--capabilities", "CAPABILITY_IAM", "--no-confirm-changeset",
          "--no-fail-on-empty-changeset", "--parameter-overrides", "EnableLocation=false",
-         "EnableCustomMetrics=false", "AlertEmail=''"], environment, timeout=3600)
+         "EnableCustomMetrics=false", f"EnableCloudFront={'false' if args.local_dashboard else 'true'}",
+         "AlertEmail=''"], environment, timeout=3600)
     run([sys.executable, "scripts/publish_frontend.py", "--stack", args.stack,
          "--region", args.region], environment, timeout=600)
     # The publishing SDK must use exactly the same profile as the CLI.
@@ -165,11 +172,20 @@ def main(argv=None):
     if not isinstance(state, dict):
         raise RuntimeError("Authenticated state endpoint did not return an object.")
     token = None
+    local_process = None
+    if args.local_dashboard:
+        if out.get("HostingMode") != "local" or out["WebsiteUrl"] != "http://localhost:8020":
+            raise RuntimeError("Stack outputs do not match local dashboard hosting; stopping.")
+        local_process = start_dashboard(ROOT, environment, out["ApiUrl"])
     for attempt in range(6):
         try:
             with urllib.request.urlopen(out["WebsiteUrl"], timeout=20) as response:
                 if response.status != 200 or b"RescueRoute" not in response.read():
                     raise RuntimeError("Dashboard check failed.")
+            if args.local_dashboard:
+                with urllib.request.urlopen(out["WebsiteUrl"] + "/config.js", timeout=20) as response:
+                    if out["ApiUrl"].encode() not in response.read():
+                        raise RuntimeError("Local dashboard configuration does not match the AWS backend.")
             break
         except (urllib.error.URLError, RuntimeError):
             if attempt == 5:
@@ -179,6 +195,11 @@ def main(argv=None):
     print("Dashboard:", out["WebsiteUrl"])
     print("Sign in as dispatcher. Run the guided mission to verify the full review journey.")
     print("After review, follow docs/AWS_DEPLOYMENT.md to remove project resources and check retained resources.")
+    if args.local_dashboard:
+        print("Dashboard runs on this PC; API, authentication, data and exports use AWS.")
+        print("Close the dashboard server window to stop local serving. AWS resources require separate cleanup.")
+        if local_process is not None:
+            print("Local dashboard server PID:", local_process.pid)
 
 
 if __name__ == "__main__":

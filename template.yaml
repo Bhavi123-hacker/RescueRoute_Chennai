@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: RescueRoute Chennai - A*, RF traffic, SNS alerts, WebSockets, SageMaker-ready, Location
 Parameters:
+  EnableCloudFront:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Use CloudFront hosting; false serves the dashboard on localhost:8020 with the AWS backend
   EnableLocation:
     Type: String
     Default: 'false'
@@ -17,6 +22,7 @@ Parameters:
     AllowedValues: ['true', 'false']
     Description: Enable optional chargeable CloudWatch custom metrics and dispatch alarm
 Conditions:
+  CloudFrontEnabled: !Equals [!Ref EnableCloudFront, 'true']
   LocationEnabled: !Equals [!Ref EnableLocation, 'true']
   HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
   CustomMetricsEnabled: !Equals [!Ref EnableCustomMetrics, 'true']
@@ -102,7 +108,7 @@ Resources:
         ThrottlingRateLimit: 2
       CorsConfiguration:
         AllowOrigins:
-          - !Sub 'https://${Distribution.DomainName}'
+          - !If [CloudFrontEnabled, !Sub 'https://${Distribution.DomainName}', 'http://localhost:8020']
         AllowMethods: [GET, POST, OPTIONS]
         AllowHeaders: [Authorization, Content-Type]
       Auth:
@@ -307,6 +313,7 @@ Resources:
                 Resource: '*'
   FrontendBucket:
     Type: AWS::S3::Bucket
+    Condition: CloudFrontEnabled
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -318,6 +325,7 @@ Resources:
           - ObjectOwnership: BucketOwnerEnforced
   OriginAccess:
     Type: AWS::CloudFront::OriginAccessControl
+    Condition: CloudFrontEnabled
     Properties:
       OriginAccessControlConfig:
         Name: !Sub '${AWS::StackName}-frontend'
@@ -326,6 +334,7 @@ Resources:
         SigningProtocol: sigv4
   Distribution:
     Type: AWS::CloudFront::Distribution
+    Condition: CloudFrontEnabled
     Properties:
       Tags:
         - Key: Project
@@ -355,6 +364,7 @@ Resources:
           CloudFrontDefaultCertificate: true
   FrontendPolicy:
     Type: AWS::S3::BucketPolicy
+    Condition: CloudFrontEnabled
     Properties:
       Bucket: !Ref FrontendBucket
       PolicyDocument:
@@ -411,17 +421,21 @@ Resources:
         AllowResources:
           - !Sub 'arn:${AWS::Partition}:geo-maps:${AWS::Region}::provider/default'
         AllowReferers:
-          - !Sub 'https://${Distribution.DomainName}/*'
+          - !If [CloudFrontEnabled, !Sub 'https://${Distribution.DomainName}/*', 'http://localhost:8020/*']
 Outputs:
   ApiUrl:
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
   WebSocketUrl:
     Value: !Sub 'wss://${RealtimeApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
   WebsiteUrl:
-    Value: !Sub 'https://${Distribution.DomainName}'
+    Value: !If [CloudFrontEnabled, !Sub 'https://${Distribution.DomainName}', 'http://localhost:8020']
+  HostingMode:
+    Value: !If [CloudFrontEnabled, 'cloudfront', 'local']
   FrontendBucket:
+    Condition: CloudFrontEnabled
     Value: !Ref FrontendBucket
   DistributionId:
+    Condition: CloudFrontEnabled
     Value: !Ref Distribution
   UserPoolId:
     Value: !Ref Operators
