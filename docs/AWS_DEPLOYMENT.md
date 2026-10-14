@@ -83,6 +83,17 @@ prevent upload; try another connection if the new method also fails.
 
 ### Deployment permissions for the review
 
+If a budget stack update reports that the same budget name exists with a different
+internal ID, preserve the existing budget. Add `--reuse-existing-budget` to the
+review helper and enter the email already subscribed to it. This path reads the
+named budget and verifies a fixed account-wide monthly 1 USD COST limit, exclusion
+of credits/refunds, inclusion of tax, an active period, and email notifications
+at 50%, 80%, and 100% of actual spend. It makes no CloudFormation budget update
+and no direct budget changes. Missing budgets, denied reads, mismatched settings,
+or missing alerts stop application deployment. The option can be combined with
+`--artifact-bucket`. It verifies monitoring without repairing the budget stack's
+CloudFormation resource identity; inspect that identity before later cleanup.
+
 If the IAM user only has `ReadOnlyAccess`, generate the additional deployment policy locally:
 
 ```powershell

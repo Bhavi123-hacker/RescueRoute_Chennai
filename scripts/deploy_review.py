@@ -59,6 +59,8 @@ def main(argv=None):
     parser.add_argument("--region", default="eu-north-1")
     parser.add_argument("--stack", default="rescueroute-chennai")
     parser.add_argument("--artifact-bucket", help="Use a verified single-request upload to this existing S3 bucket")
+    parser.add_argument("--reuse-existing-budget", action="store_true",
+                        help="Verify the existing $1 budget and alerts without updating its CloudFormation stack")
     parser.add_argument("--reserve-usd", type=float, default=10)
     parser.add_argument("--deploy", action="store_true", help="Create/update AWS resources and publish the demo")
     args = parser.parse_args(argv)
@@ -101,16 +103,23 @@ def main(argv=None):
     # Recheck after the build, before uploading artifacts or creating resources.
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
-    AWS_CHANGES_STARTED = True
     # Budgets is account-wide, but its CloudFormation resource is unavailable in
     # eu-north-1. Establish alerts in us-east-1 before creating the application.
-    run([aws, "cloudformation", "deploy", "--template-file", "template-budget.yaml",
-         "--stack-name", args.stack + "-budget", "--profile", args.profile, "--region", "us-east-1",
-         "--no-fail-on-empty-changeset", "--parameter-overrides", f"BudgetName={args.stack}-monthly",
-         f"BudgetAlertEmail={email}", "--tags", "Project=RescueRoute"], environment, timeout=600)
-    print(f"Budget stack {args.stack}-budget deployed in us-east-1; app will deploy in {args.region}.")
+    if args.reuse_existing_budget:
+        run([sys.executable, "scripts/verify_review_budget.py", "--profile", args.profile,
+             "--account", identity["Account"], "--name", args.stack + "-monthly",
+             "--email", email], environment, timeout=180)
+        print(f"Existing $1 budget and alerts verified; app will deploy in {args.region}.")
+    else:
+        AWS_CHANGES_STARTED = True
+        run([aws, "cloudformation", "deploy", "--template-file", "template-budget.yaml",
+             "--stack-name", args.stack + "-budget", "--profile", args.profile, "--region", "us-east-1",
+             "--no-fail-on-empty-changeset", "--parameter-overrides", f"BudgetName={args.stack}-monthly",
+             f"BudgetAlertEmail={email}", "--tags", "Project=RescueRoute"], environment, timeout=600)
+        print(f"Budget stack {args.stack}-budget deployed in us-east-1; app will deploy in {args.region}.")
     plan = json.loads(run([aws, "freetier", "get-account-plan-state", *billing], environment, capture=True))
     check_credits(plan, args.reserve_usd)
+    AWS_CHANGES_STARTED = True
     artifact_options = ["--resolve-s3"]
     if args.artifact_bucket:
         run([sys.executable, "scripts/upload_review_artifact.py", "--profile", args.profile,
