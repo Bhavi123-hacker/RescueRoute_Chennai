@@ -39,8 +39,16 @@ py -3.12 scripts/deploy_review.py --profile rescueroute-key --deploy --reuse-exi
 
 Apply the latest generated deployment policy first, including SAM's X-Ray policy
 attachment and HTTP API's encoded `/tags/arn%3Aaws...%2Fv2%2Fapis%2F*` endpoint.
-The local mode runs a native, read-only IAM simulation before changing the app or
-uploading artifacts. With ReadOnlyAccess attached, run it separately before a build:
+The local mode runs a read-only permission preflight before changing the app or
+uploading artifacts. It simulates 70 action/resource combinations, with Cognito
+creation checked on `*` separately from existing pool operations. SAM transform
+and encoded API tagging paths use three direct grant checks in the user's actual
+attached default policy documents, including inline and group policies. These
+checks require unconditional scoped grants, refuse relevant explicit denies and
+stop if a permissions boundary makes inspection insufficient. They are not a
+full IAM evaluation or a live authorization test. The V2 tags endpoint supports
+POST/DELETE; the checker does not invent PATCH/PUT tagging operations.
+With ReadOnlyAccess attached, run the preflight separately before a build:
 
 ```powershell
 py -3.12 scripts/check_deployment_permissions.py --profile rescueroute-key
@@ -273,7 +281,7 @@ resource, regenerate the deployment policy and replace its DEFAULT JSON version.
 The grant covers only encoded HTTP/WebSocket API tagging paths in the chosen region;
 it does not include domain or unrelated regional management paths. The temporary
 backend permission preflight checks this exact path before another deployment.
-IAM simulation cannot establish account verification, service availability or
+Preflight cannot establish account verification, service availability or
 quotas; successful live deployment and demonstration still need your AWS session.
 
 - Activation error: complete account verification/support steps before deployment.
